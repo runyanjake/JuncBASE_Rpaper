@@ -1,7 +1,0 @@
-exportPattern("^[[:alpha:]]+")
-import(numDeriv)
-import(datasets)
-import(grDevices)
-import(graphics)
-import(stats)
-import(utils)
