@@ -1,0 +1,11 @@
+Notes
+
+- The DBGLM1 R function can do either WEB-Seq or DEB-Seq, which one is the right one?
+- .RData files seem to be what's commonly used (it's a more compact version of csv-like data storage, supposedly faster)
+- use rpy2 for calling r functions.
+- see the important /DoubleExpSeq/NAMESPACE file
+- /DoubleExpSeq/man folder holds .Rd files, used for R installation? more here: https://cran.r-project.org/web/packages/roxygen2/vignettes/rd.html
+
+- a note on robjects.r vs robjects.globalenv: the r version is meant for use when R is running as an embedded process (i.e. r running in python) and the globalenv version is working directly with R's namespace (this is what's searched first when you make a function call from a R console.
+
+-rpy2.robjects' DataFrame (analagous to R's data.frame) class might be good for storing data, otherwise can just use an array.
