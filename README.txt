@@ -4,6 +4,7 @@ Python version I had to use was 3.6.1 (will this work with the rest of JuncBASE?
 R version and rpy2 versions were just the latest versions.
 
 Generally working function call: python3 test.py
+(on stacker python defaults to python 2.7 which is what we want.)
 
 See here for using rpy2 vectors with R: http://rpy2.readthedocs.io/en/version_2.8.x/introduction.html#calling-r-functions
 Here is a good documentation for rpy2: http://rpy.sourceforge.net/rpy2/doc-2.1/html/robjects.html
@@ -14,3 +15,4 @@ Questions for Thursday 2/8 meeting with Angela:
     -going into a chromosome it seems better, e.g. 
             /scratch/jmrunyan/MM1s_wiita_lab/getASEventReadCounts_first/cfz_1_S3/cfz_1_S3_chr1/cfz_1_S3_chr1_all_AS_event_info.txt 
             has items in it, though the numbers seem much lower than what's in the one Angela gave as an example
+-can R functions be called from a single file or should they be created in a package (I used the RStudio program to make the HelloWorld)
