@@ -6,7 +6,7 @@
 #   R version 3.3.3 installed for MacOS 10.9 and higher (have 10.10.5)
 #   rpy2 installation failed via pip3, succeeded after R installed.
 
-import subprocess #for calling a R function from Python
+#import subprocess #for calling a R function from Python
 
 import rpy2
 from rpy2 import robjects #how r objects are defined in python (and how we'll recognize functions)
@@ -17,6 +17,23 @@ from rpy2.rinterface import R_VERSION_BUILD #simply for printing version info
 from rpy2.robjects.packages import importr
 base = importr('base')
 utils = importr('utils')
+
+#to be able to do this, HELLOWORLD.R must be in the R global environment
+#helloworld = robjects.r['HELLOWORLD.R']
+
+#direct call to R function from R using R's source()?
+robjects.r['source']("HELLOWORLD.R")
+
+#test import
+pi = robjects.r['pi']
+print('Pi equals: ', pi[0])
+
+#which cran mirror is important
+#utils.chooseCRANmirror(ind=1)
+
+#import the DoubleExpSeq R script
+#from rpy2.robjects.vectors import StrVector
+#utils.install_packages(StrVector('randompkg'))
 
 #Print Version Information
 print('\n**************VERSION INFORMATION**************')
@@ -42,7 +59,7 @@ print(robjects.r.ls(robjects.globalenv))
 #directly with R's namespace (this is what's searched first when you make a function call from a R console.
 
 #use rpy2's importr function for calling R functions?
-#use rpy2's robjects.r function for calling R functions? 
+#use rpy2's robjects.r function for calling R functions? YES
 #use python's subprocess module to run the R file?
 
 
