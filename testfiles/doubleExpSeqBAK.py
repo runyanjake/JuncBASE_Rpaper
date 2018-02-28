@@ -131,7 +131,6 @@ def main():
         # optionParser.check_required("--sample_set1")
         # optionParser.check_required("--sample_set2")
 
-        #Read JB tables into an R-object compatible with DBGLM1
         #TODO: someVal = parseJBTable("./HELLOWORLD.R")
 
 #######################################################################
@@ -172,10 +171,29 @@ def parseJBTable(filepath):
     print('TODO')
     
 
-#TODO: check file existence etc & read in inclusion/exclusion counts ^
-#TODO: parse relevant JuncBASE table info into R object form 
-#   (someething within robjects, possibly StrVector or equiv?)
+#execution of .R file from rpy2 using R's !!! "source(<filename>)" !!! function
+# NOTE: Other methods may be utilized to define it in R namespace (see test.py) and then call.
+# METHOD 1: Calling R file as script, therefore executes only what's in the file.
+rfile = "HELLOWORLD.R"
+robjects.r['source'](rfile)
+
+#Can we get the R environment to recognize the .R script exists?
+exists = robjects.r['exists'](rfile)
+print("2nd value of exists: ") 
+print(exists)
+
+# METHOD 2: Calling function itself (this reads the file specified by string + .R ext)
+helloworld = robjects.r['HELLOWORLD']
+helloworld()
+#dbglm1 = robjects.r['DBGLM1'] #need full path or local file!
+
+# Print R global environment
+print('R Global Environment holds:\n')
+print(robjects.r.ls(robjects.globalenv))
+
+#TODO: check file existence etc
 #TODO: determine input type to DBGLM1.
+#TODO: parse relevant JuncBASE table info into R object form (someething within robjects, possibly StrVector or equiv?)
 
 #######################################################################
 ###################### Main Loop Execution ############################

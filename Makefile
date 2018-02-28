@@ -1,7 +1,9 @@
 all:
 	clear
-	make runpy2
+	make runpy3
 runpy2:
-	python2 test.py
+	@echo Running doubleExpSeq with Python2.x.
+	python2 doubleExpSeq.py
 runpy3:
-	python3 test.py
+	@echo Running doubleExpSeq with Python3.x.
+	python3 doubleExpSeq.py
