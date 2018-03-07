@@ -6,4 +6,4 @@ runpy2:
 	python2 doubleExpSeq.py
 runpy3:
 	@echo Running doubleExpSeq with Python3.x.
-	python3 doubleExpSeq.py
+	python3 doubleExpSeq.py --jb_table ./notes.txt

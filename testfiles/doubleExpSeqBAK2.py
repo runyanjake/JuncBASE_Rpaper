@@ -10,7 +10,6 @@ from rpy2 import robjects #how r objects are defined in python.
 from rpy2.rinterface import R_VERSION_BUILD #print version info
 import optparse #OptionParser
 import sys #sys.exit etc
-import os #os.path.exists
 
 
 
@@ -20,6 +19,8 @@ import os #os.path.exists
 #OptionParser Defaults
 DEF_THRESH = 10
 DEF_DPSI_THRESH = 5.0
+
+
 
 #######################################################################
 ######################### CLASS DEFINITIONS ###########################
@@ -39,6 +40,8 @@ class OptionParser(optparse.OptionParser):
             self.print_help()
             sys.exit(1)
 
+
+
 #######################################################################
 ###################### Main Loop Definition ###########################
 #######################################################################
@@ -50,7 +53,7 @@ def main():
 
         #initialize an OptionParser
         ##**** Options ****##
-        # --jb_table       | full path + name of juncBASE table
+        # --in_prefix      | full path + name prefix of input file
         # --all_psi_output | full path + name of output file
         # --mt_correction  | is this necessary for WEB/DEB seq?
         # --thresh         | see notes for usage
@@ -59,12 +62,13 @@ def main():
         # --sample_set2    | prefix for the other set of samples
         # NOTE: prefixes come from JBase table entries (last 2n cols)
         optionParser = OptionParser()
-        optionParser.add_option("--jb_table",
-                          dest="jb_table",
+        optionParser.add_option("--in_prefix",
+                          dest="in_prefix",
                           type="string",
-                          help="""The full path and filename of the 
-                                JuncBASE table that will be used
-                                for all calculations.""",
+                          help="""Prefix of output files created from
+                                  createAS_CountTables. In 
+                                  createAS_CountTables this was the -o 
+                                  option""",
                           default=None)
         optionParser.add_option("--all_psi_output",
                           dest="all_psi_output",
@@ -125,22 +129,15 @@ def main():
 
         #validate supplied arguments
         #NOTE: still need to check if files passed in exist etc.
-        optionParser.check_required("--jb_table")
-        # optionParser.check_required("--all_psi_output")
-        # optionParser.check_required("--mt_correction")
-        # optionParser.check_required("--thresh")
-        # optionParser.check_required("--delta_thresh")
-        # optionParser.check_required("--sample_set1")
-        # optionParser.check_required("--sample_set2")
+        optionParser.check_required("--in_prefix")
+        optionParser.check_required("--all_psi_output")
+        optionParser.check_required("--mt_correction")
+        optionParser.check_required("--thresh")
+        optionParser.check_required("--delta_thresh")
+        optionParser.check_required("--sample_set1")
+        optionParser.check_required("--sample_set2")
 
-        #check if the table specified as jb_table exists.
-        print('looking for file: ' + options.jb_table)
-        if(os.path.exists(options.jb_table)):
-            print('Exists\n')
-        else:
-            print('Does Not Exist\n')
-
-        #Read JB tables into R-objects compatible with DBGLM1
+        #Read JB tables into an R-object compatible with DBGLM1
         y = False #"numeric matrix of inclusion counts"
         x = False #"numeric matrix of total counts (incl+excl)"
         groups = False #"vector/factor w expr grp/cond for each sample"
