@@ -1,5 +1,3 @@
-#!/usr/local/bin python2
-
 # @author Jake Runyan
 # @notes
 #   Intended for use with Python 2.7
@@ -13,7 +11,9 @@ import sys #sys.exit etc
 import os #os.path.exists
 import csv #for input of jb_table
 
-
+#messing with R matrices
+from rpy2.robjects.packages import importr #messing with R matrices
+from rpy2.robjects import FloatVector #messing with R matrices
 
 #######################################################################
 ####################### CONSTANT DEFINITIONS ##########################
@@ -139,25 +139,43 @@ def main():
         checkImportantFiles(options.jb_table, R_FUNC_PATH)
 
         #ensure that file size is adequate.
-        fileLength = numLines(options.jb_table)
+        fileLength = getNumLinesNoKey(options.jb_table)
         checkSampleSizeThresh(fileLength, options.threshold)
 
         #Read JB tables into R-objects compatible with DBGLM1
-        #NOTE: I'm using python lists for matrices becausethey're mutable
+        #NOTE: I'm using python lists for matrices because they're mutable
         #and can be passed by reference/changed in method
-        y = [] #"numeric matrix of inclusion counts"
-        x = [] #"numeric matrix of total counts (incl+excl)"
-        groups = False #"vector/factor w expr grp/cond for each sample"
+        y = None #"numeric matrix of inclusion counts"
+        m = None #"numeric matrix of total counts (incl+excl)"
+        groups = None #"vector/factor w expr grp/cond for each sample"
         shrinkMethod = "WEB" #WEB- or DEB-Seq (default WEB)
-        contrast = False #"size 2 vector specifying which group levels to compare"
-        fdrLevel = 0.05 #"thresh for significant event"
-        useAllGroups = True #"use contrast's groups to est dispersion?"
+        contrast = None #"size 2 vector specifying which group levels to compare"
+        fdrLevel = 0.05 #"thresh for significant event (not same as delta_thresh?)"
+        useAllGroups = None #"use contrast's groups to est dispersion?"
 
         #alternatively, do the call in a helper function
         #NOTE: remember this can only be done if y and x are mutable
         #(lists are mutable so use these?)
-        parseJBTable(options.jb_table, y, x)
-        
+        parseJBTable(options.jb_table, y, m)
+            #IN this function, 2 floatvectors should be made, converted to numeric matrices, and their values given to y and m.
+            #matrix sizes: numrows: total number of columns -1. can this be found from sample_set1/2?
+            #              numcols: value returned by getNumLinesNoKey
+
+
+
+
+
+        #messing with R matrices
+        print('ARITY OF ASEvent record IS ' + str(getArity(options.jb_table)-11))
+        print('Number of non-key lines in file ' + str(getNumLinesNoKey(options.jb_table)))
+        rmatrix = robjects.r['matrix']
+        rprint = robjects.r['print']
+        testVect = FloatVector([1.0,1.1,1.2,1.3,1.4,1.5,1.6,2.0,1.9,1.8])
+        mat = rmatrix(testVect, nrow=2, ncol=5) #yields a numeric matrix
+        rprint(mat)
+
+
+
 
 
 #######################################################################
@@ -172,48 +190,26 @@ def printVersionInfo():
     print(R_VERSION_BUILD)
     print('*************END VERSION INFORMATION*************\n')
 
-def numLines(filepath):
+def getNumLinesNoKey(filepath):
     ctr = 0
     with open(filepath, 'rt') as ctrfile:
         reader = csv.reader(ctrfile, delimiter='\t')
         for line in reader: 
             ctr += 1
-    return ctr-1 #since jb_table's first line is a key.
+    return ctr-1 #jb_table first line is a key.
 
-#Attempts to read in a JuncBASE output table.
-# NOTE: requires knowledge of the size of sample_set1 and sample_set2 (maybe)
-# REF: https://docs.python.org/2/library/csv.html
-# @param filePath Takes in an output juncBASE table (.txt ext)
-# @return: RETURNS SOME ITEM CONTAINING list of inclusion/exclusion counts
-def parseJBTable(filepath, y, x):
-    linenr = 1
-    print('Reading from ' + filepath + "...\n")
-    with open(filepath, 'rt') as tsvfile:
-        reader = csv.reader(tsvfile, delimiter='\t')
+def getArity(filepath):
+    with open(filepath, 'rt') as readfile:
+        reader = csv.reader(readfile, delimiter='\t')
         for line in reader: 
-            #line is indexable w/ array indices 0 - n-1
-            #Its an (11+n)-tuple, with the last n being total samples.
-            #order is specified in Step 6A. organized by --sample_setX
-            for itor in range(11, len(line)):
-                print(itor)
-                print(': ')
-                print(line[itor])
-            print('\n')
-            # print(len(line))
-            # print(linenr)
-            # print(': ')
-            # print(line)
-            # print('\n')
-            # linenr += 1
+            return len(line) #break on first
 
 #checks to make sure the juncbase table and R file exist.
 def checkImportantFiles(jb_table, r_file):
-    #Error if the Juncbase table is an existing file.
     if(not os.path.exists(jb_table)):
         print('doubleExpSeq.py: ERROR: the --jb_table option (' 
             + options.jb_table + ") does not exist.\n")
         sys.exit(1)
-    #Error if the R function's file cannot be found.
     # (for now is just relative to pwd)
     if(not os.path.exists(r_file)):
         print('doubleExpSeq.py: ERROR: expected DBGLM1.R file (' 
@@ -227,6 +223,30 @@ def checkSampleSizeThresh(num_lines, thresh):
             + str(thresh) + 'values. Update --thresh param or try with '+ 
             ' different file.')
         sys.exit(1)
+
+#Attempts to read in a JuncBASE output table.
+# NOTE: requires knowledge of the size of sample_set1 and sample_set2 (maybe)
+# REF: https://docs.python.org/2/library/csv.html
+# @param filePath Takes in an output juncBASE table (.txt ext)
+# @return: RETURNS SOME ITEM CONTAINING list of inclusion/exclusion counts
+def parseJBTable(filepath, y, m):
+    linenr = 1
+    print('Reading from ' + filepath + "...\n")
+    with open(filepath, 'rt') as tsvfile:
+        reader = csv.reader(tsvfile, delimiter='\t')
+        for line in reader: 
+            #line is indexable w/ array indices 0 - n-1
+            #Its an (11+n)-tuple, with the last n being total samples.
+            #order is specified in Step 6A. organized by --sample_setX
+            print('Line '+str(linenr)+':')
+            linenr += 1
+            for itor in range(11, len(line)):
+                inclexcl = line[itor].split(';')
+                print(str(itor)+': '+line[itor] + '  (Inc: ' + inclexcl[0] + ',Exc: ' + inclexcl[-1] + ')')
+                #print('') #toggle println
+            print('\n')
+
+    #NOTE: CHECK DELTA_THRESH HERE
     
 
 #TODO: check file existence etc & read in inclusion/exclusion counts ^
