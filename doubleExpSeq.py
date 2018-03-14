@@ -11,6 +11,7 @@ from rpy2.rinterface import R_VERSION_BUILD #print version info
 import optparse #OptionParser
 import sys #sys.exit etc
 import os #os.path.exists
+import csv #for input of jb_table
 
 
 
@@ -128,21 +129,24 @@ def main():
         optionParser.check_required("--jb_table")
         # optionParser.check_required("--all_psi_output")
         # optionParser.check_required("--mt_correction")
-        # optionParser.check_required("--thresh")
+        optionParser.check_required("--thresh")
         # optionParser.check_required("--delta_thresh")
         # optionParser.check_required("--sample_set1")
         # optionParser.check_required("--sample_set2")
 
-        #check if the table specified as jb_table exists.
-        print('looking for file: ' + options.jb_table)
-        if(os.path.exists(options.jb_table)):
-            print('Exists\n')
-        else:
-            print('Does Not Exist\n')
+        #ensure jb table and r file exist.
+        R_FUNC_PATH = './DoubleExpSeq/R/DBGLM1.R'
+        checkImportantFiles(options.jb_table, R_FUNC_PATH)
+
+        #ensure that file size is adequate.
+        fileLength = numLines(options.jb_table)
+        checkSampleSizeThresh(fileLength, options.threshold)
 
         #Read JB tables into R-objects compatible with DBGLM1
-        y = False #"numeric matrix of inclusion counts"
-        x = False #"numeric matrix of total counts (incl+excl)"
+        #NOTE: I'm using python lists for matrices becausethey're mutable
+        #and can be passed by reference/changed in method
+        y = [] #"numeric matrix of inclusion counts"
+        x = [] #"numeric matrix of total counts (incl+excl)"
         groups = False #"vector/factor w expr grp/cond for each sample"
         shrinkMethod = "WEB" #WEB- or DEB-Seq (default WEB)
         contrast = False #"size 2 vector specifying which group levels to compare"
@@ -150,8 +154,10 @@ def main():
         useAllGroups = True #"use contrast's groups to est dispersion?"
 
         #alternatively, do the call in a helper function
-        #someVal = parseJBTable("some filename passed in. or hardcoded")
-
+        #NOTE: remember this can only be done if y and x are mutable
+        #(lists are mutable so use these?)
+        parseJBTable(options.jb_table, y, x)
+        
 
 
 #######################################################################
@@ -166,30 +172,61 @@ def printVersionInfo():
     print(R_VERSION_BUILD)
     print('*************END VERSION INFORMATION*************\n')
 
-# Check existence of desired file.
-#   For dealing with the R global environment, use 
-#       http://rpy.sourceforge.net/rpy2/doc-dev/html/introduction.html 
-#   For info on defining R functions from Python to deal with the global 
-#       environment here.
-#   Potentially can do a different method of calling rfile using the 
-#       global environment to check if it exists, etc. Safer?
-# @param r_filename: A string containing the filepath to R file.
-# @return True: Returns true iff r_filename points to a existing file.
-# @return False: Returns false if no such file exists.
-def RFileExists(r_filename):
-    exists = robjects.r['exists'](r_filename)
-    print(exists)
-    if (robjects.r['exists'](r_filename)): 
-        return True
-    else:
-        return False
+def numLines(filepath):
+    ctr = 0
+    with open(filepath, 'rt') as ctrfile:
+        reader = csv.reader(ctrfile, delimiter='\t')
+        for line in reader: 
+            ctr += 1
+    return ctr-1 #since jb_table's first line is a key.
 
 #Attempts to read in a JuncBASE output table.
-# NOTE: requires knowledge of the size of sample_set1 and sample_set2
+# NOTE: requires knowledge of the size of sample_set1 and sample_set2 (maybe)
+# REF: https://docs.python.org/2/library/csv.html
 # @param filePath Takes in an output juncBASE table (.txt ext)
 # @return: RETURNS SOME ITEM CONTAINING list of inclusion/exclusion counts
-def parseJBTable(filepath):
-    print('TODO')
+def parseJBTable(filepath, y, x):
+    linenr = 1
+    print('Reading from ' + filepath + "...\n")
+    with open(filepath, 'rt') as tsvfile:
+        reader = csv.reader(tsvfile, delimiter='\t')
+        for line in reader: 
+            #line is indexable w/ array indices 0 - n-1
+            #Its an (11+n)-tuple, with the last n being total samples.
+            #order is specified in Step 6A. organized by --sample_setX
+            for itor in range(11, len(line)):
+                print(itor)
+                print(': ')
+                print(line[itor])
+            print('\n')
+            # print(len(line))
+            # print(linenr)
+            # print(': ')
+            # print(line)
+            # print('\n')
+            # linenr += 1
+
+#checks to make sure the juncbase table and R file exist.
+def checkImportantFiles(jb_table, r_file):
+    #Error if the Juncbase table is an existing file.
+    if(not os.path.exists(jb_table)):
+        print('doubleExpSeq.py: ERROR: the --jb_table option (' 
+            + options.jb_table + ") does not exist.\n")
+        sys.exit(1)
+    #Error if the R function's file cannot be found.
+    # (for now is just relative to pwd)
+    if(not os.path.exists(r_file)):
+        print('doubleExpSeq.py: ERROR: expected DBGLM1.R file (' 
+            + r_file + ") does not exist.\n")
+        sys.exit(1)
+
+#checks to make sure file contains more than thresh events 
+def checkSampleSizeThresh(num_lines, thresh):
+    if(thresh > num_lines):
+        print('doubleExpSeq.py: ERROR: file does not contain more than '
+            + str(thresh) + 'values. Update --thresh param or try with '+ 
+            ' different file.')
+        sys.exit(1)
     
 
 #TODO: check file existence etc & read in inclusion/exclusion counts ^
@@ -201,3 +238,4 @@ def parseJBTable(filepath):
 ###################### Main Loop Execution ############################
 #######################################################################
 if __name__ == "__main__": main()
+

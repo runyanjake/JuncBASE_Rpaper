@@ -6,4 +6,4 @@ runpy2:
 	python2 doubleExpSeq.py
 runpy3:
 	@echo Running doubleExpSeq with Python3.x.
-	python3 doubleExpSeq.py --jb_table ./notes.txt
+	python3 doubleExpSeq.py --thresh 10 --jb_table ./ExampleCountTables/MM1s_juncBASE_171117_AS_exclusion_inclusion_counts_SAMPLE.txt
