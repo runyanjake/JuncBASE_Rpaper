@@ -21,6 +21,8 @@ from rpy2.robjects import FloatVector #messing with R matrices
 #OptionParser Defaults
 DEF_THRESH = 10
 DEF_DPSI_THRESH = 5.0
+#debug statement toggle
+DEBUG_STMTS = False
 
 #######################################################################
 ######################### CLASS DEFINITIONS ###########################
@@ -60,6 +62,13 @@ def main():
         # --sample_set2    | prefix for the other set of samples
         # NOTE: prefixes come from JBase table entries (last 2n cols)
         optionParser = OptionParser()
+        optionParser.add_option("--debug",
+                          dest="debug",
+                          type="string",
+                          help="""A value of 0 disables debug statements.
+                                Any other value enables them. This arg
+                                is optional.""",
+                          default="0")
         optionParser.add_option("--jb_table",
                           dest="jb_table",
                           type="string",
@@ -134,6 +143,12 @@ def main():
         # optionParser.check_required("--sample_set1")
         # optionParser.check_required("--sample_set2")
 
+        #setup debug statments
+        if(options.debug != "0"):
+            DEBUG_STMTS = True
+        else:
+            DEBUG_STMTS = False
+
         #ensure jb table and r file exist.
         R_FUNC_PATH = './DoubleExpSeq/R/DBGLM1.R'
         checkImportantFiles(options.jb_table, R_FUNC_PATH)
@@ -156,7 +171,7 @@ def main():
         #alternatively, do the call in a helper function
         #NOTE: remember this can only be done if y and x are mutable
         #(lists are mutable so use these?)
-        parseJBTable(options.jb_table, y, m)
+        parseJBTable(options.jb_table, y, m, options.delta_thresh, getArity(options.jb_table)-11.0)
             #IN this function, 2 floatvectors should be made, converted to numeric matrices, and their values given to y and m.
             #matrix sizes: numrows: total number of columns -1. can this be found from sample_set1/2?
             #              numcols: value returned by getNumLinesNoKey
@@ -165,14 +180,16 @@ def main():
 
 
 
-        #messing with R matrices
-        print('ARITY OF ASEvent record IS ' + str(getArity(options.jb_table)-11))
-        print('Number of non-key lines in file ' + str(getNumLinesNoKey(options.jb_table)))
+        #Creating an R matrix and printing it.
+        if(DEBUG_STMTS):
+            print('ARITY OF ASEvent record IS ' + str(getArity(options.jb_table)-11))
+            print('Number of non-key lines in file ' + str(getNumLinesNoKey(options.jb_table)))
         rmatrix = robjects.r['matrix']
         rprint = robjects.r['print']
         testVect = FloatVector([1.0,1.1,1.2,1.3,1.4,1.5,1.6,2.0,1.9,1.8])
         mat = rmatrix(testVect, nrow=2, ncol=5) #yields a numeric matrix
         rprint(mat)
+        #NEXT: create such an R matrix from the parse loop and save it.
 
 
 
@@ -190,6 +207,7 @@ def printVersionInfo():
     print(R_VERSION_BUILD)
     print('*************END VERSION INFORMATION*************\n')
 
+#returns number of lines in file, not including the key.
 def getNumLinesNoKey(filepath):
     ctr = 0
     with open(filepath, 'rt') as ctrfile:
@@ -198,6 +216,8 @@ def getNumLinesNoKey(filepath):
             ctr += 1
     return ctr-1 #jb_table first line is a key.
 
+#returns the arity of the jb table. 
+#can be used with static offset to obtain number of samples
 def getArity(filepath):
     with open(filepath, 'rt') as readfile:
         reader = csv.reader(readfile, delimiter='\t')
@@ -224,17 +244,53 @@ def checkSampleSizeThresh(num_lines, thresh):
             ' different file.')
         sys.exit(1)
 
+#verify a line to ensure it satisfies the delta-thresh condition
+#return TRUE if line is ok to use.
+#return FALSE if line does not satisfy delta-thresh
+def checkDeltaThresh(line, linenr, numSamples, dthresh):
+    total = 0.0
+    avg = 0.0
+    if(linenr > 1):
+        for itor in range(11, len(line)):
+            inclexcl = line[itor].split(';')
+            total += float(inclexcl[-1])
+            print(total)
+        avg = total / numSamples
+        print('Average: ' + str(avg))
+        #test all vals
+        ret = False
+        for itor in range(11, len(line)):
+            inclexcl = line[itor].split(';')
+            inclAndExclCount = float(inclexcl[-1])
+            confidenceRange = avg * (dthresh / 100.0)
+            if(inclAndExclCount > (avg + confidenceRange) or inclAndExclCount < (avg - confidenceRange)):
+                print('The line satisfies the delta_thresh condition. At least one value (' + str(inclAndExclCount) + ') appeared outside ' + str(avg) + ' +/- ' + str(confidenceRange) + '.')
+                return True
+        print('The line did not satisfy the delta_thresh condition. No value appeared outside ' + str(avg) + ' +/- ' + str(avg + confidenceRange) + '.')
+        return ret
+
 #Attempts to read in a JuncBASE output table.
 # NOTE: requires knowledge of the size of sample_set1 and sample_set2 (maybe)
 # REF: https://docs.python.org/2/library/csv.html
 # @param filePath Takes in an output juncBASE table (.txt ext)
 # @return: RETURNS SOME ITEM CONTAINING list of inclusion/exclusion counts
-def parseJBTable(filepath, y, m):
+def parseJBTable(filepath, y, m, dthresh, numSamples):
+    # rc = robjects.r['c'] #generic R function C that combines 2 lists/nums into a list
+    # rprint = robjects.r['print'] #R generic print
+    # yNumVect = ([1]) #NumericVector that will convert into y matrix
+    # mNumVect = ([1]) #NumericVector that will convert into m matrix
+    # rc(yNumVect, 3)
+    # print('yNumVect:')
+    # rprint(yNumVect)
+    #TODO: look into R's c function which should concatenate lists.
+    #   there is also the append function from R
+    
     linenr = 1
     print('Reading from ' + filepath + "...\n")
     with open(filepath, 'rt') as tsvfile:
         reader = csv.reader(tsvfile, delimiter='\t')
         for line in reader: 
+            checkDeltaThresh(line, linenr, numSamples, dthresh)
             #line is indexable w/ array indices 0 - n-1
             #Its an (11+n)-tuple, with the last n being total samples.
             #order is specified in Step 6A. organized by --sample_setX
