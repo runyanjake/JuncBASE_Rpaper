@@ -19,8 +19,8 @@ from rpy2.robjects import FloatVector #messing with R matrices
 ####################### CONSTANT DEFINITIONS ##########################
 #######################################################################
 #OptionParser Defaults
-DEF_THRESH = 10
-DEF_DPSI_THRESH = 5.0
+DEF_THRESH = 10         #min number of lines    
+DEF_DPSI_THRESH = 5.0   #min numerical diff needed to consider change
 #debug statement toggle
 DEBUG_STMTS = False
 
@@ -240,8 +240,8 @@ def checkImportantFiles(jb_table, r_file):
 def checkSampleSizeThresh(num_lines, thresh):
     if(thresh > num_lines):
         print('doubleExpSeq.py: ERROR: file does not contain more than '
-            + str(thresh) + 'values. Update --thresh param or try with '+ 
-            ' different file.')
+            + str(thresh) + ' values. Update --thresh param or try with '+ 
+            'different file.')
         sys.exit(1)
 
 #verify a line to ensure it satisfies the delta-thresh condition
