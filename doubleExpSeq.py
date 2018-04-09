@@ -294,7 +294,6 @@ def parseJBTable(filepath, y, m, dthresh, numSamples, numLines):
         #create arrays, can these be dynamic?
         yvalues = [] #empty list, use append to add items.
         mvalues = [] #empty list, use append to add items.
-        yvalues.append(4.9)
 
 
         for line in reader: 
