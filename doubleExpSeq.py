@@ -171,7 +171,7 @@ def main():
         #alternatively, do the call in a helper function
         #NOTE: remember this can only be done if y and x are mutable
         #(lists are mutable so use these?)
-        parseJBTable(options.jb_table, y, m, options.delta_thresh, getArity(options.jb_table)-11.0)
+        parseJBTable(options.jb_table, y, m, options.delta_thresh, getArity(options.jb_table)-11.0, fileLength)
             #IN this function, 2 floatvectors should be made, converted to numeric matrices, and their values given to y and m.
             #matrix sizes: numrows: total number of columns -1. can this be found from sample_set1/2?
             #              numcols: value returned by getNumLinesNoKey
@@ -190,8 +190,6 @@ def main():
         mat = rmatrix(testVect, nrow=2, ncol=5) #yields a numeric matrix
         rprint(mat)
         #NEXT: create such an R matrix from the parse loop and save it.
-
-
 
 
 
@@ -236,7 +234,7 @@ def checkImportantFiles(jb_table, r_file):
             + r_file + ") does not exist.\n")
         sys.exit(1)
 
-#checks to make sure file contains more than thresh events 
+#checks to make sure file contains more than --thresh events 
 def checkSampleSizeThresh(num_lines, thresh):
     if(thresh > num_lines):
         print('doubleExpSeq.py: ERROR: file does not contain more than '
@@ -247,6 +245,7 @@ def checkSampleSizeThresh(num_lines, thresh):
 #verify a line to ensure it satisfies the delta-thresh condition
 #return TRUE if line is ok to use.
 #return FALSE if line does not satisfy delta-thresh
+#FOR RIGHT NOW THIS IS DETERMINED BY PERCENT DIFFERENCE BETWEEN 
 def checkDeltaThresh(line, linenr, numSamples, dthresh):
     total = 0.0
     avg = 0.0
@@ -258,23 +257,24 @@ def checkDeltaThresh(line, linenr, numSamples, dthresh):
         avg = total / numSamples
         print('Average: ' + str(avg))
         #test all vals
-        ret = False
         for itor in range(11, len(line)):
             inclexcl = line[itor].split(';')
             inclAndExclCount = float(inclexcl[-1])
             confidenceRange = avg * (dthresh / 100.0)
             if(inclAndExclCount > (avg + confidenceRange) or inclAndExclCount < (avg - confidenceRange)):
                 print('The line satisfies the delta_thresh condition. At least one value (' + str(inclAndExclCount) + ') appeared outside ' + str(avg) + ' +/- ' + str(confidenceRange) + '.')
+                print('Returning True value.')
                 return True
         print('The line did not satisfy the delta_thresh condition. No value appeared outside ' + str(avg) + ' +/- ' + str(avg + confidenceRange) + '.')
-        return ret
+        print('Returning False value.')
+        return False
 
 #Attempts to read in a JuncBASE output table.
 # NOTE: requires knowledge of the size of sample_set1 and sample_set2 (maybe)
 # REF: https://docs.python.org/2/library/csv.html
 # @param filePath Takes in an output juncBASE table (.txt ext)
 # @return: RETURNS SOME ITEM CONTAINING list of inclusion/exclusion counts
-def parseJBTable(filepath, y, m, dthresh, numSamples):
+def parseJBTable(filepath, y, m, dthresh, numSamples, numLines):
     # rc = robjects.r['c'] #generic R function C that combines 2 lists/nums into a list
     # rprint = robjects.r['print'] #R generic print
     # yNumVect = ([1]) #NumericVector that will convert into y matrix
@@ -284,23 +284,42 @@ def parseJBTable(filepath, y, m, dthresh, numSamples):
     # rprint(yNumVect)
     #TODO: look into R's c function which should concatenate lists.
     #   there is also the append function from R
-    
     linenr = 1
     print('Reading from ' + filepath + "...\n")
     with open(filepath, 'rt') as tsvfile:
         reader = csv.reader(tsvfile, delimiter='\t')
+
+
+
+        #create arrays, can these be dynamic?
+        yvalues = [] #empty list, use append to add items.
+        mvalues = [] #empty list, use append to add items.
+        yvalues.append(4.9)
+
+
         for line in reader: 
-            checkDeltaThresh(line, linenr, numSamples, dthresh)
-            #line is indexable w/ array indices 0 - n-1
-            #Its an (11+n)-tuple, with the last n being total samples.
-            #order is specified in Step 6A. organized by --sample_setX
-            print('Line '+str(linenr)+':')
+            if(linenr > 1):
+                keep = checkDeltaThresh(line, linenr, numSamples, dthresh)
+                if(keep):
+                    #DO THESE IF LINE PASSES DELTA_THRESH
+                    #  line is indexable w/ array indices 0 - n-1
+                    #  Its an (11+n)-tuple, with the last n being total samples.
+                    #  order is specified in Step 6A. organized by --sample_setX
+                    # print('Line '+str(linenr)+':')
+                    for itor in range(11, len(line)):
+                        inclexcl = line[itor].split(';')
+                        yvalues.append(inclexcl[0])
+                        mvalues.append(inclexcl[0] + inclexcl[1])
+                        # print(str(itor)+': '+line[itor] + '  (Inc: ' + inclexcl[0] + ',Exc: ' + inclexcl[-1] + ')')
+                    # print('\n')
             linenr += 1
-            for itor in range(11, len(line)):
-                inclexcl = line[itor].split(';')
-                print(str(itor)+': '+line[itor] + '  (Inc: ' + inclexcl[0] + ',Exc: ' + inclexcl[-1] + ')')
-                #print('') #toggle println
-            print('\n')
+
+        #Convert python arrays into floatvectors
+        y = FloatVector(yvalues)
+        m = FloatVector(mvalues)
+
+        print('Y: ' + str(y))
+        print('M: ' + str(m))
 
     #NOTE: CHECK DELTA_THRESH HERE
     
