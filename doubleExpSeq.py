@@ -253,20 +253,20 @@ def checkDeltaThresh(line, linenr, numSamples, dthresh):
         for itor in range(11, len(line)):
             inclexcl = line[itor].split(';')
             total += float(inclexcl[-1])
-            print(total)
+            #print(total)
         avg = total / numSamples
-        print('Average: ' + str(avg))
+        #print('Average: ' + str(avg))
         #test all vals
         for itor in range(11, len(line)):
             inclexcl = line[itor].split(';')
             inclAndExclCount = float(inclexcl[-1])
             confidenceRange = avg * (dthresh / 100.0)
             if(inclAndExclCount > (avg + confidenceRange) or inclAndExclCount < (avg - confidenceRange)):
-                print('The line satisfies the delta_thresh condition. At least one value (' + str(inclAndExclCount) + ') appeared outside ' + str(avg) + ' +/- ' + str(confidenceRange) + '.')
-                print('Returning True value.')
+                #print('The line satisfies the delta_thresh condition. At least one value (' + str(inclAndExclCount) + ') appeared outside ' + str(avg) + ' +/- ' + str(confidenceRange) + '.')
+                print('Returning True value for line ' + str(linenr))
                 return True
-        print('The line did not satisfy the delta_thresh condition. No value appeared outside ' + str(avg) + ' +/- ' + str(avg + confidenceRange) + '.')
-        print('Returning False value.')
+        #print('The line did not satisfy the delta_thresh condition. No value appeared outside ' + str(avg) + ' +/- ' + str(avg + confidenceRange) + '.')
+        print('Returning False value for line ' + str(linenr))
         return False
 
 #Attempts to read in a JuncBASE output table.
@@ -308,7 +308,8 @@ def parseJBTable(filepath, y, m, dthresh, numSamples, numLines):
                     for itor in range(11, len(line)):
                         inclexcl = line[itor].split(';')
                         yvalues.append(inclexcl[0])
-                        mvalues.append(inclexcl[0] + inclexcl[1])
+                        sum = float(inclexcl[0]) + float(inclexcl[1])
+                        mvalues.append(sum)
                         # print(str(itor)+': '+line[itor] + '  (Inc: ' + inclexcl[0] + ',Exc: ' + inclexcl[-1] + ')')
                     # print('\n')
             linenr += 1
