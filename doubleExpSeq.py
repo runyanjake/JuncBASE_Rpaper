@@ -158,25 +158,23 @@ def main():
         checkSampleSizeThresh(fileLength, options.threshold)
 
         #Read JB tables into R-objects compatible with DBGLM1
-        #NOTE: I'm using python lists for matrices because they're mutable
         #and can be passed by reference/changed in method
-        y = None #"numeric matrix of inclusion counts"
-        m = None #"numeric matrix of total counts (incl+excl)"
+        yvalues = [] #python list to be y
+        mvalues = [] #python list to be m
         groups = None #"vector/factor w expr grp/cond for each sample"
         shrinkMethod = "WEB" #WEB- or DEB-Seq (default WEB)
         contrast = None #"size 2 vector specifying which group levels to compare"
         fdrLevel = 0.05 #"thresh for significant event (not same as delta_thresh?)"
         useAllGroups = None #"use contrast's groups to est dispersion?"
 
-        #alternatively, do the call in a helper function
-        #NOTE: remember this can only be done if y and x are mutable
-        #(lists are mutable so use these?)
-        parseJBTable(options.jb_table, y, m, options.delta_thresh, getArity(options.jb_table)-11.0, fileLength)
-            #IN this function, 2 floatvectors should be made, converted to numeric matrices, and their values given to y and m.
-            #matrix sizes: numrows: total number of columns -1. can this be found from sample_set1/2?
-            #              numcols: value returned by getNumLinesNoKey
+        parseJBTable(options.jb_table, yvalues, mvalues, options.delta_thresh, getArity(options.jb_table)-11.0, fileLength)
 
+        #convert python lists to matrices for R 
+        y = FloatVector(yvalues) #"numeric matrix of inclusion counts"
+        m = FloatVector(mvalues) #"numeric matrix of total counts (incl+excl)"
 
+        print('Yasdf: ' + str(y))
+        print('Masdf: ' + str(m))
 
 
 
@@ -206,6 +204,7 @@ def printVersionInfo():
     print('*************END VERSION INFORMATION*************\n')
 
 #returns number of lines in file, not including the key.
+#equivalent to the number of recorded events in the data file.
 def getNumLinesNoKey(filepath):
     ctr = 0
     with open(filepath, 'rt') as ctrfile:
@@ -214,7 +213,7 @@ def getNumLinesNoKey(filepath):
             ctr += 1
     return ctr-1 #jb_table first line is a key.
 
-#returns the arity of the jb table. 
+#returns the arity of the jb table. (num cols per entry)
 #can be used with static offset to obtain number of samples
 def getArity(filepath):
     with open(filepath, 'rt') as readfile:
@@ -245,7 +244,7 @@ def checkSampleSizeThresh(num_lines, thresh):
 #verify a line to ensure it satisfies the delta-thresh condition
 #return TRUE if line is ok to use.
 #return FALSE if line does not satisfy delta-thresh
-#FOR RIGHT NOW THIS IS DETERMINED BY PERCENT DIFFERENCE BETWEEN 
+#FOR RIGHT NOW THIS IS TAKEN TO BE PERCENT DIFFERENCE FROM MEAN VALUE ###############
 def checkDeltaThresh(line, linenr, numSamples, dthresh):
     total = 0.0
     avg = 0.0
@@ -263,38 +262,24 @@ def checkDeltaThresh(line, linenr, numSamples, dthresh):
             confidenceRange = avg * (dthresh / 100.0)
             if(inclAndExclCount > (avg + confidenceRange) or inclAndExclCount < (avg - confidenceRange)):
                 #print('The line satisfies the delta_thresh condition. At least one value (' + str(inclAndExclCount) + ') appeared outside ' + str(avg) + ' +/- ' + str(confidenceRange) + '.')
-                print('Returning True value for line ' + str(linenr))
+                #print('Returning True value for line ' + str(linenr))
                 return True
         #print('The line did not satisfy the delta_thresh condition. No value appeared outside ' + str(avg) + ' +/- ' + str(avg + confidenceRange) + '.')
-        print('Returning False value for line ' + str(linenr))
+        #print('Returning False value for line ' + str(linenr))
         return False
 
-#Attempts to read in a JuncBASE output table.
-# NOTE: requires knowledge of the size of sample_set1 and sample_set2 (maybe)
-# REF: https://docs.python.org/2/library/csv.html
-# @param filePath Takes in an output juncBASE table (.txt ext)
-# @return: RETURNS SOME ITEM CONTAINING list of inclusion/exclusion counts
-def parseJBTable(filepath, y, m, dthresh, numSamples, numLines):
-    # rc = robjects.r['c'] #generic R function C that combines 2 lists/nums into a list
-    # rprint = robjects.r['print'] #R generic print
-    # yNumVect = ([1]) #NumericVector that will convert into y matrix
-    # mNumVect = ([1]) #NumericVector that will convert into m matrix
-    # rc(yNumVect, 3)
-    # print('yNumVect:')
-    # rprint(yNumVect)
-    #TODO: look into R's c function which should concatenate lists.
-    #   there is also the append function from R
+# Reads a JuncBASE table's values into yvalues and mvalues.
+# @param filepath The filepath to the table.
+# @param yvalues A python list to hold inclusion counts.
+# @param mvalues A python list to hold inclusion+exclusion counts.
+# @param dthresh The --delta-thresh value.
+# @param numSamples The number of samples that appear in the table.
+# @param numLines The number of recorded events in the table (number of lines -1)
+def parseJBTable(filepath, yvalues, mvalues, dthresh, numSamples, numLines):
     linenr = 1
     print('Reading from ' + filepath + "...\n")
     with open(filepath, 'rt') as tsvfile:
         reader = csv.reader(tsvfile, delimiter='\t')
-
-
-
-        #create arrays, can these be dynamic?
-        yvalues = [] #empty list, use append to add items.
-        mvalues = [] #empty list, use append to add items.
-
 
         for line in reader: 
             if(linenr > 1):
@@ -313,18 +298,7 @@ def parseJBTable(filepath, y, m, dthresh, numSamples, numLines):
                         # print(str(itor)+': '+line[itor] + '  (Inc: ' + inclexcl[0] + ',Exc: ' + inclexcl[-1] + ')')
                     # print('\n')
             linenr += 1
-
-        #Convert python arrays into floatvectors
-        y = FloatVector(yvalues)
-        m = FloatVector(mvalues)
-
-        print('Y: ' + str(y))
-        print('M: ' + str(m))
-
-    #NOTE: CHECK DELTA_THRESH HERE
     
-
-#TODO: check file existence etc & read in inclusion/exclusion counts ^
 #TODO: parse relevant JuncBASE table info into R object form 
 #   (someething within robjects, possibly StrVector or equiv?)
 #TODO: determine input type to DBGLM1.
