@@ -182,6 +182,9 @@ def main():
         print('M inputs as rpy2 FloatVector: ')
         print(mFloatVec)
 
+        print('==================================================================')
+        print('==================================================================')
+
         print('Y inputs as R matrix: ')
         print(y)
         print('M inputs as R matrix: ')
