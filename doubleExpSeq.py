@@ -175,18 +175,17 @@ def main():
         mFloatVec = FloatVector(mvalues) #"numeric matrix of total counts (incl+excl)"
         #matrix rows is arity, number of cols is number of file rows-1
         y = rmatrix(yFloatVec, nrow=fileLength, ncol=getArity(options.jb_table)-11.0)
-        m = rmatrix(yFloatVec, nrow=fileLength, ncol=getArity(options.jb_table)-11.0)
+        m = rmatrix(mFloatVec, nrow=fileLength, ncol=getArity(options.jb_table)-11.0)
 
-        print('Y inputs: ')
+        print('Y inputs as rpy2 FloatVector: ')
+        print(yFloatVec)
+        print('M inputs as rpy2 FloatVector: ')
+        print(mFloatVec)
+
+        print('Y inputs as R matrix: ')
         print(y)
-        print('M inputs: ')
+        print('M inputs as R matrix: ')
         print(m)
-
-
-        #Creating an R matrix and printing it.\
-        #NEXT: create such an R matrix from the parse loop and save it.
-
-
 
 #######################################################################
 ################# Auxiliary Function Definitions ######################
