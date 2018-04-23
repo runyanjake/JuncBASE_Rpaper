@@ -170,23 +170,20 @@ def main():
         parseJBTable(options.jb_table, yvalues, mvalues, options.delta_thresh, getArity(options.jb_table)-11.0, fileLength)
 
         #convert python lists to matrices for R 
-        y = FloatVector(yvalues) #"numeric matrix of inclusion counts"
-        m = FloatVector(mvalues) #"numeric matrix of total counts (incl+excl)"
-
-        print('Yasdf: ' + str(y))
-        print('Masdf: ' + str(m))
-
-
-
-        #Creating an R matrix and printing it.
-        if(DEBUG_STMTS):
-            print('ARITY OF ASEvent record IS ' + str(getArity(options.jb_table)-11))
-            print('Number of non-key lines in file ' + str(getNumLinesNoKey(options.jb_table)))
         rmatrix = robjects.r['matrix']
-        rprint = robjects.r['print']
-        testVect = FloatVector([1.0,1.1,1.2,1.3,1.4,1.5,1.6,2.0,1.9,1.8])
-        mat = rmatrix(testVect, nrow=2, ncol=5) #yields a numeric matrix
-        rprint(mat)
+        yFloatVec = FloatVector(yvalues) #"numeric matrix of inclusion counts"
+        mFloatVec = FloatVector(mvalues) #"numeric matrix of total counts (incl+excl)"
+        #matrix rows is arity, number of cols is number of file rows-1
+        y = rmatrix(yFloatVec, nrow=fileLength, ncol=getArity(options.jb_table)-11.0)
+        m = rmatrix(yFloatVec, nrow=fileLength, ncol=getArity(options.jb_table)-11.0)
+
+        print('Y inputs: ')
+        print(y)
+        print('M inputs: ')
+        print(m)
+
+
+        #Creating an R matrix and printing it.\
         #NEXT: create such an R matrix from the parse loop and save it.
 
 
