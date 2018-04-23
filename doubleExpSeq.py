@@ -174,8 +174,8 @@ def main():
         yFloatVec = FloatVector(yvalues) #"numeric matrix of inclusion counts"
         mFloatVec = FloatVector(mvalues) #"numeric matrix of total counts (incl+excl)"
         #matrix rows is arity, number of cols is number of file rows-1
-        y = rmatrix(yFloatVec, nrow=getArity(options.jb_table)-11.0, ncol=fileLength)
-        m = rmatrix(mFloatVec, nrow=getArity(options.jb_table)-11.0, ncol=fileLength)
+        y = rmatrix(yFloatVec, nrow=fileLength, ncol=getArity(options.jb_table)-11.0,byrow=True)
+        m = rmatrix(mFloatVec, nrow=fileLength, ncol=getArity(options.jb_table)-11.0,byrow=True)
 
         print('Y inputs as rpy2 FloatVector: ')
         print(yFloatVec)
