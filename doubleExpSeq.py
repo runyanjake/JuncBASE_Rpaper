@@ -4,7 +4,7 @@
 
 #**** IMPORTS ****#
 import rpy2
-from rpy2.robjects.packages import SignatureTranslatedAnonymousPackage #For embedding R functions into python file
+from rpy2.robjects.packages import importr #importing R packages.
 from rpy2 import robjects #how r objects are defined in python.
 from rpy2.rinterface import R_VERSION_BUILD #print version info
 import optparse #OptionParser
@@ -208,6 +208,39 @@ def main():
         useAllGroups = True
 
         #Import R package
+
+        #trying to use importr
+        # print("Attempting to import DoubleExpSeq.")
+        # DoubleExpSeq = importr('DoubleExpSeq')
+        # print("Should have finished importing DoubleExpSeq.")
+
+        #trying to use r's install fxn
+        # print("Attempting to import DoubleExpSeq.")
+        # rimport = robjects.r['install']
+        # rimport.packages("DoubleExpSeq", lib="./DoubleExpSeq")
+        # print("Should have finished importing DoubleExpSeq.")
+
+        #trying to mirror from CRAN (Stack overflow and rpy2 documentation point to this way)
+        utils = importr('utils')
+        print('Setting CRAN as default to install DoubleExpSeq from...')
+        utils.chooseCRANmirror(ind=1) #default the CRAN repo
+        print('Done.')
+
+        #This is probably needed for first time installation of DoubleExpSeq
+        # print('Installing the DoubleExpSeq package...')
+        # utils.install_packages('DoubleExpSeq') #is this really required?
+        # print('Done.')
+
+        print('Loading the DoubleExpSeq package into this R environment...')
+        DoubleExpSeq = importr('DoubleExpSeq') 
+        print('Done.')
+
+        print('Running DBGLM1...')
+        results = DoubleExpSeq.DBGLM1(y,m,groups,shrinkMethod,contrast,fdrLevel,useAllGroups)
+        print('Done.')
+
+        print('Results: ')
+        print(results)
 
         #Call R function
 
