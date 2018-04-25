@@ -4,7 +4,6 @@
 
 #**** IMPORTS ****#
 import rpy2
-from rpy2.robjects.packages import importr #import R libraries
 from rpy2.robjects.packages import SignatureTranslatedAnonymousPackage #For embedding R functions into python file
 from rpy2 import robjects #how r objects are defined in python.
 from rpy2.rinterface import R_VERSION_BUILD #print version info
@@ -199,19 +198,27 @@ def main():
         print(tmp)
 
         #set other params
-        groups = rc(1) #TODO: Figure out what should be put into here for correct output.
+        groups = rc("CTRL", "CTRL", "CTRL", 
+                    "E7107", "E7107", "E7107", 
+                    "MELPH", "MELPH", "MELPH", 
+                    "CFZ", "CFZ", "CFZ")
         shrinkMethod = rc("WEB")
         contrast = rc(1,2)
         fdrLevel = 0.05
         useAllGroups = True
 
         #Call the function
-        #doubleexpseq = importr("DoubleExpSeq")
         if hiWorld is not None:
             print("Running HelloWorld.") 
             hiWorld.HELLOWORLD()
         else:
             print("Package not initialized correctly.")
+        
+        # if DoubleExpSeqSubset is not None:
+        #     print("Running DBGLM1.") 
+        #     DoubleExpSeqSubset.DBGLM1(y, m, groups, shrinkMethod, contrast, fdrLevel, useAllGroups)
+        # else:
+        #     print("Package not initialized correctly.")
 
 #######################################################################
 ################# Auxiliary Function Definitions ######################
@@ -467,8 +474,8 @@ HELLOWORLD <-
 function (){
     x = 1
     x = x + 8
-    print("Hello World:")
-    print(x)
+    print("Hello World")
+    sprintf("X is now $i", x)
 }
 """
 hiWorld = SignatureTranslatedAnonymousPackage(helloworld, "hiWorld")
