@@ -150,9 +150,8 @@ def main():
         else:
             DEBUG_STMTS = False
 
-        #ensure jb table and r file exist.
-        R_FUNC_PATH = './DoubleExpSeq/R/DBGLM1.R'
-        checkImportantFiles(options.jb_table, R_FUNC_PATH)
+        #ensure jb table exists. No need to check for R function anymore.
+        checkImportantFiles(options.jb_table)
 
         #ensure that file size is adequate.
         fileLength = getNumLinesNoKey(options.jb_table)
@@ -198,28 +197,17 @@ def main():
         print(tmp)
 
         #set other params
-        groups = rc("CTRL", "CTRL", "CTRL", 
-                    "E7107", "E7107", "E7107", 
-                    "MELPH", "MELPH", "MELPH", 
-                    "CFZ", "CFZ", "CFZ")
+        groups = rc("CTRL", "CTRL", "CTRL",     #1
+                    "E7107", "E7107", "E7107",  #2
+                    "MELPH", "MELPH", "MELPH",  #3  
+                    "CFZ", "CFZ", "CFZ")        #4
         shrinkMethod = rc("WEB")
-        contrast = rc(1,2)
+        contrast = rc(1,3) #the INDICES we compare ^
         fdrLevel = 0.05
         useAllGroups = True
 
         #Import R package
-
-        #trying to use importr
-        # print("Attempting to import DoubleExpSeq.")
-        # DoubleExpSeq = importr('DoubleExpSeq')
-        # print("Should have finished importing DoubleExpSeq.")
-
-        #trying to use r's install fxn
-        # print("Attempting to import DoubleExpSeq.")
-        # rimport = robjects.r['install']
-        # rimport.packages("DoubleExpSeq", lib="./DoubleExpSeq")
-        # print("Should have finished importing DoubleExpSeq.")
-
+        
         #trying to mirror from CRAN (Stack overflow and rpy2 documentation point to this way)
         utils = importr('utils')
         print('Setting CRAN as default to install DoubleExpSeq from...')
@@ -242,7 +230,14 @@ def main():
         print('Results: ')
         print(results)
 
-        #Call R function
+        #Dump R script output to a text file if it is required.
+        #assumes there's a .txt ending. otherwise filesize must be > 4chars.
+        datafile = options.jb_table[(options.jb_table.rfind("/")+1):(len(options.jb_table) - 4)] + '_doubleExpSeqOutdata.txt'
+        print("New datafile: " + str(datafile))
+        #f = open('', 'w')
+
+        #Generate an M-A Plot
+
 
 #######################################################################
 ################# Auxiliary Function Definitions ######################
@@ -275,15 +270,10 @@ def getArity(filepath):
             return len(line) #break on first
 
 #checks to make sure the juncbase table and R file exist.
-def checkImportantFiles(jb_table, r_file):
+def checkImportantFiles(jb_table):
     if(not os.path.exists(jb_table)):
         print('doubleExpSeq.py: ERROR: the --jb_table option (' 
             + options.jb_table + ") does not exist.\n")
-        sys.exit(1)
-    # (for now is just relative to pwd)
-    if(not os.path.exists(r_file)):
-        print('doubleExpSeq.py: ERROR: expected DBGLM1.R file (' 
-            + r_file + ") does not exist.\n")
         sys.exit(1)
 
 #checks to make sure file contains more than --thresh events 
