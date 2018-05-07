@@ -11,6 +11,7 @@ import optparse #OptionParser
 import sys #sys.exit etc
 import os #os.path.exists
 import csv #for input of jb_table
+import datetime #for naming generated files
 
 #messing with R matrices
 from rpy2.robjects.packages import importr #messing with R matrices
@@ -207,37 +208,42 @@ def main():
         useAllGroups = True
 
         #Import R package
-        
         #trying to mirror from CRAN (Stack overflow and rpy2 documentation point to this way)
         utils = importr('utils')
         print('Setting CRAN as default to install DoubleExpSeq from...')
         utils.chooseCRANmirror(ind=1) #default the CRAN repo
         print('Done.')
-
         #This is probably needed for first time installation of DoubleExpSeq
         # print('Installing the DoubleExpSeq package...')
         # utils.install_packages('DoubleExpSeq') #is this really required?
         # print('Done.')
-
         print('Loading the DoubleExpSeq package into this R environment...')
         DoubleExpSeq = importr('DoubleExpSeq') 
         print('Done.')
 
         print('Running DBGLM1...')
-        results = DoubleExpSeq.DBGLM1(y,m,groups,shrinkMethod,contrast,fdrLevel,useAllGroups)
+        fullResults = DoubleExpSeq.DBGLM1(y,m,groups,shrinkMethod,contrast,fdrLevel,useAllGroups)
+        sigResults = fullResults.rx("Sig") #grab just the $Sig matrix
         print('Done.')
-
-        print('Results: ')
-        print(results)
 
         #Dump R script output to a text file if it is required.
         #assumes there's a .txt ending. otherwise filesize must be > 4chars.
-        datafile = options.jb_table[(options.jb_table.rfind("/")+1):(len(options.jb_table) - 4)] + '_doubleExpSeqOutdata.txt'
-        print("New datafile: " + str(datafile))
-        #f = open('', 'w')
+        print('Dumping DBGLM1 output to file...')
+        now = datetime.datetime.now()
+        datafile = options.jb_table[(options.jb_table.rfind("/")+1):(len(options.jb_table) - 4)] + '_doubleExpSeqOutdata_' + str(now.month) + '-' + str(now.day) + '.' + str(now.hour) + ':' + str(now.minute) + '_' + '.txt'
+        f = open(datafile, 'w')
+        f.write(str(fullResults))
+        f.close()
+        print('Done.')
 
         #Generate an M-A Plot
+        print('Creating an M-A plot...')
 
+        print('Groups: ')
+        print(groups)
+
+        DoubleExpSeq.DB_MAPlot(y,m,groups,main=datafile)
+        print('Done.')
 
 #######################################################################
 ################# Auxiliary Function Definitions ######################
