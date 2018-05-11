@@ -55,6 +55,8 @@ def main():
 
         #initialize an OptionParser
         ##**** Options ****##
+        # --initialize     | facilitates R import of DoubleExpSeq package
+        # --debug          | debug statements
         # --jb_table       | full path + name of juncBASE table
         # --all_psi_output | full path + name of output file
         # --mt_correction  | is this necessary for WEB/DEB seq?
@@ -64,6 +66,12 @@ def main():
         # --sample_set2    | prefix for the other set of samples
         # NOTE: prefixes come from JBase table entries (last 2n cols)
         optionParser = OptionParser()
+        optionParser.add_option("--initialize",
+                          action="store_true", 
+                          dest="is_first_run", 
+                          default=False,
+                          help="""Before running, we must import the R 
+                                package. Set this option to """)
         optionParser.add_option("--debug",
                           dest="debug",
                           type="string",
@@ -145,105 +153,105 @@ def main():
         # optionParser.check_required("--sample_set1")
         # optionParser.check_required("--sample_set2")
 
-        #setup debug statments
-        if(options.debug != "0"):
-            DEBUG_STMTS = True
-        else:
-            DEBUG_STMTS = False
-
-        #ensure jb table exists. No need to check for R function anymore.
-        checkImportantFiles(options.jb_table)
-
-        #ensure that file size is adequate.
-        fileLength = getNumLinesNoKey(options.jb_table)
-        checkSampleSizeThresh(fileLength, options.threshold)
-
-        #Read JB tables into R-objects compatible with DBGLM1
-        #and can be passed by reference/changed in method
-        y = None #R numeric matrix holding incl only.
-        m = None #R numeric matrix holding incl + excl
-        groups = None #"vector/factor w expr grp/cond for each sample"
-        shrinkMethod = None #WEB- or DEB-Seq (default WEB)
-        contrast = None #"size 2 vector specifying which group levels to compare"
-        fdrLevel = None #"thresh for significant event (not same as delta_thresh?)"
-        useAllGroups = None #"use contrast's groups to est dispersion?"
-
-        yvalues = [] #python list to be y
-        mvalues = [] #python list to be m
-        parseJBTable(options.jb_table, yvalues, mvalues, options.delta_thresh, getArity(options.jb_table)-11.0, fileLength)
-
-        #convert python lists to matrices for R 
-        rmatrix = robjects.r['matrix'] #matrix creation
-        rc = robjects.r['c'] #R vector creation
-        yFloatVec = FloatVector(yvalues) #"numeric matrix of inclusion counts"
-        mFloatVec = FloatVector(mvalues) #"numeric matrix of total counts (incl+excl)"
-        #matrix rows is arity, number of cols is number of file rows-1
-        y = rmatrix(yFloatVec, nrow=fileLength, ncol=getArity(options.jb_table)-11.0,byrow=True)
-        m = rmatrix(mFloatVec, nrow=fileLength, ncol=getArity(options.jb_table)-11.0,byrow=True)
-
-        print('Y inputs as rpy2 FloatVector: ')
-        print(yFloatVec)
-        print('M inputs as rpy2 FloatVector: ')
-        print(mFloatVec)
-
-        print('==========================================================================')
-        print('==========================================================================')
-
-        print('Y inputs as R matrix: ')
-        print(y)
-        print('M inputs as R matrix: ')
-        print(m)
-
-        tmp = rc(1, 2, 3, 4, 5)
-        print(tmp)
-
-        #set other params
-        groups = rc("CTRL", "CTRL", "CTRL",     #1
-                    "E7107", "E7107", "E7107",  #2
-                    "MELPH", "MELPH", "MELPH",  #3  
-                    "CFZ", "CFZ", "CFZ")        #4
-        shrinkMethod = rc("WEB")
-        contrast = rc(1,3) #the INDICES we compare ^
-        fdrLevel = 0.05
-        useAllGroups = True
-
-        #Import R package
-        #trying to mirror from CRAN (Stack overflow and rpy2 documentation point to this way)
-        utils = importr('utils')
-        print('Setting CRAN as default to install DoubleExpSeq from...')
-        utils.chooseCRANmirror(ind=1) #default the CRAN repo
-        print('Done.')
         #This is probably needed for first time installation of DoubleExpSeq
-        # print('Installing the DoubleExpSeq package...')
-        # utils.install_packages('DoubleExpSeq') #is this really required?
-        # print('Done.')
-        print('Loading the DoubleExpSeq package into this R environment...')
-        DoubleExpSeq = importr('DoubleExpSeq') 
-        print('Done.')
+        #on the local R installation
+        if(options.is_first_run):
+            #Import R package
+            #trying to mirror from CRAN (Stack overflow and rpy2 documentation point to this way)
+            utils = importr('utils')
+            print('Setting CRAN as default to install DoubleExpSeq from...')
+            utils.chooseCRANmirror(ind=1) #default the CRAN repo
+            print('Done.')
+            #First time installation of R Package
+            print('Performing first time installation of the DoubleExpSeq package...')
+            utils.install_packages('DoubleExpSeq') #is this really required?
+            print('Done.')
+        else:
+            #setup debug statments
+            if(options.debug != "0"):
+                DEBUG_STMTS = True
+            else:
+                DEBUG_STMTS = False
 
-        print('Running DBGLM1...')
-        fullResults = DoubleExpSeq.DBGLM1(y,m,groups,shrinkMethod,contrast,fdrLevel,useAllGroups)
-        sigResults = fullResults.rx("Sig") #grab just the $Sig matrix
-        print('Done.')
+            #ensure jb table exists. No need to check for R function anymore.
+            checkImportantFiles(options.jb_table)
 
-        #Dump R script output to a text file if it is required.
-        #assumes there's a .txt ending. otherwise filesize must be > 4chars.
-        print('Dumping DBGLM1 output to file...')
-        now = datetime.datetime.now()
-        datafile = options.jb_table[(options.jb_table.rfind("/")+1):(len(options.jb_table) - 4)] + '_doubleExpSeqOutdata_' + str(now.month) + '-' + str(now.day) + '.' + str(now.hour) + ':' + str(now.minute) + '_' + '.txt'
-        f = open(datafile, 'w')
-        f.write(str(fullResults))
-        f.close()
-        print('Done.')
+            #ensure that file size is adequate.
+            fileLength = getNumLinesNoKey(options.jb_table)
+            checkSampleSizeThresh(fileLength, options.threshold)
 
-        #Generate an M-A Plot
-        print('Creating an M-A plot...')
+            #Read JB tables into R-objects compatible with DBGLM1
+            #and can be passed by reference/changed in method
+            y = None #R numeric matrix holding incl only.
+            m = None #R numeric matrix holding incl + excl
+            groups = None #"vector/factor w expr grp/cond for each sample"
+            shrinkMethod = None #WEB- or DEB-Seq (default WEB)
+            contrast = None #"size 2 vector specifying which group levels to compare"
+            fdrLevel = None #"thresh for significant event (not same as delta_thresh?)"
+            useAllGroups = None #"use contrast's groups to est dispersion?"
 
-        print('Groups: ')
-        print(groups)
+            yvalues = [] #python list to be y
+            mvalues = [] #python list to be m
+            parseJBTable(options.jb_table, yvalues, mvalues, options.delta_thresh, getArity(options.jb_table)-11.0, fileLength)
 
-        DoubleExpSeq.DB_MAPlot(y,m,groups,main=datafile)
-        print('Done.')
+            #convert python lists to matrices for R 
+            rmatrix = robjects.r['matrix'] #matrix creation
+            rc = robjects.r['c'] #R vector creation
+            yFloatVec = FloatVector(yvalues) #"numeric matrix of inclusion counts"
+            mFloatVec = FloatVector(mvalues) #"numeric matrix of total counts (incl+excl)"
+            #matrix rows is arity, number of cols is number of file rows-1
+            y = rmatrix(yFloatVec, nrow=fileLength, ncol=getArity(options.jb_table)-11.0,byrow=True)
+            m = rmatrix(mFloatVec, nrow=fileLength, ncol=getArity(options.jb_table)-11.0,byrow=True)
+
+            print('Y inputs as rpy2 FloatVector: ')
+            print(yFloatVec)
+            print('M inputs as rpy2 FloatVector: ')
+            print(mFloatVec)
+
+            print('==========================================================================')
+            print('==========================================================================')
+
+            print('Y inputs as R matrix: ')
+            print(y)
+            print('M inputs as R matrix: ')
+            print(m)
+
+            tmp = rc(1, 2, 3, 4, 5)
+            print(tmp)
+
+            #set other params
+            groups = rc("CTRL", "CTRL", "CTRL",     #1
+                        "E7107", "E7107", "E7107",  #2
+                        "MELPH", "MELPH", "MELPH",  #3  
+                        "CFZ", "CFZ", "CFZ")        #4
+            shrinkMethod = rc("WEB")
+            contrast = rc(2,3) #the INDICES we compare ^
+            fdrLevel = 0.05
+            useAllGroups = True
+
+            print('Loading the DoubleExpSeq package into this R environment...')
+            DoubleExpSeq = importr('DoubleExpSeq') 
+            print('Done.')
+
+            print('Running DBGLM1...')
+            fullResults = DoubleExpSeq.DBGLM1(y,m,groups,shrinkMethod,contrast,fdrLevel,useAllGroups)
+            sigResults = fullResults.rx("Sig") #grab just the $Sig matrix
+            print('Done.')
+
+            #Dump R script output to a text file if it is required.
+            #assumes there's a .txt ending. otherwise filesize must be > 4chars.
+            print('Dumping DBGLM1 output to file...')
+            now = datetime.datetime.now()
+            datafile = options.jb_table[(options.jb_table.rfind("/")+1):(len(options.jb_table) - 4)] + '_doubleExpSeqOutdata_' + str(now.month) + '-' + str(now.day) + '.' + str(now.hour) + ':' + str(now.minute) + '_' + '.txt'
+            f = open(datafile, 'w')
+            f.write(str(fullResults))
+            f.close()
+            print('Done.')
+
+            #Generate an M-A Plot
+            print('Creating an M-A plot...')
+            DoubleExpSeq.DB_MAPlot(y,m,groups,contrast=contrast,main=datafile)
+            print('Done.')
 
 #######################################################################
 ################# Auxiliary Function Definitions ######################
