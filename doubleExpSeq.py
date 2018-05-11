@@ -287,7 +287,7 @@ def getArity(filepath):
 def checkImportantFiles(jb_table):
     if(not os.path.exists(jb_table)):
         print('doubleExpSeq.py: ERROR: the --jb_table option (' 
-            + options.jb_table + ") does not exist.\n")
+            + jb_table + ") does not exist.\n")
         sys.exit(1)
 
 #checks to make sure file contains more than --thresh events 
