@@ -71,13 +71,16 @@ def main():
                           dest="is_first_run", 
                           default=False,
                           help="""Before running, we must import the R 
-                                package. Set this option to """)
+                                package. First run this script with 
+                                '--initialize' to import the package.
+                                You should see about 8 runtime warnings
+                                and a message noting where files have been
+                                installed. """)
         optionParser.add_option("--debug",
                           dest="debug",
                           type="string",
-                          help="""A value of 0 disables debug statements.
-                                Any other value enables them. This arg
-                                is optional.""",
+                          help="""Optional debugging statements.
+                                '--debug 1' to enable. """,
                           default="0")
         optionParser.add_option("--jb_table",
                           dest="jb_table",
@@ -86,26 +89,8 @@ def main():
                                 JuncBASE table that will be used
                                 for all calculations.""",
                           default=None)
-        optionParser.add_option("--all_psi_output",
-                          dest="all_psi_output",
-                          type="string",
-                          help="""Output file that will contain the PSI
-                                values for all events and samples. The 
-                                last two columns will correspond to the 
-                                raw-pvalue and corrected p-value. If a 
-                                generic file is used, this will be the 
-                                output file""",
-                          default=None)
-        optionParser.add_option("--mt_correction",
-                          dest="mt_method",
-                          type="string",
-                          help="""Multiple testing correction Method: 
-                                "BH" - Benjamini & Hochberg, 
-                                "bonferroni".  Must select these strings 
-                                as the option""",
-                          default=None)
         optionParser.add_option("--thresh",
-                          dest="threshold",
+                          dest="thresh",
                           type="float",
                           help="""Threshold for minimum abundance
                                   in an event. Default=%d""" 
@@ -139,22 +124,10 @@ def main():
                                 per line. Names must be in header 
                                 columns of input files.""",
                           default=None)
-
         #grab arguments & put into list
         (options, args) = optionParser.parse_args()
 
-        #validate supplied arguments
-        #NOTE: still need to check if files passed in exist etc.
-        optionParser.check_required("--jb_table")
-        # optionParser.check_required("--all_psi_output")
-        # optionParser.check_required("--mt_correction")
-        optionParser.check_required("--thresh")
-        # optionParser.check_required("--delta_thresh")
-        # optionParser.check_required("--sample_set1")
-        # optionParser.check_required("--sample_set2")
-
-        #This is probably needed for first time installation of DoubleExpSeq
-        #on the local R installation
+        #### FIRST TIME INSTALLATION ####
         if(options.is_first_run):
             #Import R package
             #trying to mirror from CRAN (Stack overflow and rpy2 documentation point to this way)
@@ -166,19 +139,26 @@ def main():
             print('Performing first time installation of the DoubleExpSeq package...')
             utils.install_packages('DoubleExpSeq') #is this really required?
             print('Done.')
+            sys.exit()
+
+        #### NORMAL PROGRAM EXECUTION ####
         else:
+            
             #setup debug statments
             if(options.debug != "0"):
                 DEBUG_STMTS = True
             else:
                 DEBUG_STMTS = False
 
-            #ensure jb table exists. No need to check for R function anymore.
-            checkImportantFiles(options.jb_table)
+            #### CHECK REQUIRED ARGUMENTS ARE SUPPLIED ####
+            optionParser.check_required("--jb_table")
+            # optionParser.check_required("--thresh")
+            # optionParser.check_required("--delta_thresh")
+            # optionParser.check_required("--sample_set1")
+            # optionParser.check_required("--sample_set2")
 
-            #ensure that file size is adequate.
-            fileLength = getNumLinesNoKey(options.jb_table)
-            checkSampleSizeThresh(fileLength, options.threshold)
+            #### ENSURE SUPPLIED TABLE EXISTS #### 
+            checkImportantFiles(options.jb_table)
 
             #Read JB tables into R-objects compatible with DBGLM1
             #and can be passed by reference/changed in method
@@ -192,7 +172,15 @@ def main():
 
             yvalues = [] #python list to be y
             mvalues = [] #python list to be m
-            parseJBTable(options.jb_table, yvalues, mvalues, options.delta_thresh, getArity(options.jb_table)-11.0, fileLength)
+            fileLength = getNumLinesNoKey(options.jb_table)
+            parseJBTable(options.jb_table, yvalues, mvalues, options.thresh, (options.delta_thresh / 100.0), getArity(options.jb_table)-11.0, fileLength)
+
+
+
+            sys.exit()
+
+
+
 
             #convert python lists to matrices for R 
             rmatrix = robjects.r['matrix'] #matrix creation
@@ -263,7 +251,7 @@ def printVersionInfo():
     print('rpy2 version: ' + rpy2.__version__)
     print('This version of rpy2 was built on R version ')
     print(R_VERSION_BUILD)
-    print('*************END VERSION INFORMATION*************\n')
+    print('************END VERSION INFORMATION************\n')
 
 #returns number of lines in file, not including the key.
 #equivalent to the number of recorded events in the data file.
@@ -290,40 +278,42 @@ def checkImportantFiles(jb_table):
             + jb_table + ") does not exist.\n")
         sys.exit(1)
 
-#checks to make sure file contains more than --thresh events 
-def checkSampleSizeThresh(num_lines, thresh):
-    if(thresh > num_lines):
-        print('doubleExpSeq.py: ERROR: file does not contain more than '
-            + str(thresh) + ' values. Update --thresh param or try with '+ 
-            'different file.')
-        sys.exit(1)
+#checks to make sure each ASEvent from each sample was looked at more than thresh times
+#return TRUE if line is ok to use.
+#return FALSE if line does not satisfy thresh
+def checkThresh(line, linenr, thresh):
+    for itor in range(11, len(line)):
+        inclexcl = line[itor].split(';')
+        if(float(inclexcl[0]) + float(inclexcl[1]) < thresh):
+            # print("Line " + str(linenr-2) + " failed thresh test. total read count: " + str(float(inclexcl[0]) + float(inclexcl[1])) + " < " + str(thresh))
+            return False
+    return True
 
 #verify a line to ensure it satisfies the delta-thresh condition
 #return TRUE if line is ok to use.
 #return FALSE if line does not satisfy delta-thresh
-#FOR RIGHT NOW THIS IS TAKEN TO BE PERCENT DIFFERENCE FROM MEAN VALUE ###############
 def checkDeltaThresh(line, linenr, numSamples, dthresh):
-    total = 0.0
-    avg = 0.0
+    first = line[11].split(';') #Default to first in line.
+    max_psi = 0.0
+    min_psi = 0.0
+    if(not(float(first[1]) == 0 and float(first[1]) == 0)):
+        max_psi = float(first[1]) / (float(first[0]) + float(first[1]))
+        min_psi = float(first[1]) / (float(first[0]) + float(first[1]))
+
     if(linenr > 1):
-        for itor in range(11, len(line)):
+        for itor in range(12, len(line)): #since we default to first in line, one less per line to check
             inclexcl = line[itor].split(';')
-            total += float(inclexcl[-1])
-            #print(total)
-        avg = total / numSamples
-        #print('Average: ' + str(avg))
-        #test all vals
-        for itor in range(11, len(line)):
-            inclexcl = line[itor].split(';')
-            inclAndExclCount = float(inclexcl[-1])
-            confidenceRange = avg * (dthresh / 100.0)
-            if(inclAndExclCount > (avg + confidenceRange) or inclAndExclCount < (avg - confidenceRange)):
-                #print('The line satisfies the delta_thresh condition. At least one value (' + str(inclAndExclCount) + ') appeared outside ' + str(avg) + ' +/- ' + str(confidenceRange) + '.')
-                #print('Returning True value for line ' + str(linenr))
-                return True
-        #print('The line did not satisfy the delta_thresh condition. No value appeared outside ' + str(avg) + ' +/- ' + str(avg + confidenceRange) + '.')
-        #print('Returning False value for line ' + str(linenr))
-        return False
+            this_psi = 0.0
+            if(not(float(inclexcl[1]) == 0 and float(inclexcl[1]) == 0)):
+                this_psi = float(inclexcl[1]) / (float(inclexcl[0]) + float(inclexcl[1]))
+            if(this_psi > max_psi):
+                max_psi = this_psi
+            if(this_psi < min_psi):
+                min_psi = this_psi
+        if(max_psi - min_psi < dthresh):
+            # print("Line " + str(linenr-2) + " failed delta_thresh test. delta_psi: " + str(max_psi - min_psi) + " < " + str(dthresh))
+            return False
+        return True
 
 # Reads a JuncBASE table's values into yvalues and mvalues.
 # @param filepath The filepath to the table.
@@ -332,29 +322,45 @@ def checkDeltaThresh(line, linenr, numSamples, dthresh):
 # @param dthresh The --delta-thresh value.
 # @param numSamples The number of samples that appear in the table.
 # @param numLines The number of recorded events in the table (number of lines -1)
-def parseJBTable(filepath, yvalues, mvalues, dthresh, numSamples, numLines):
+def parseJBTable(filepath, yvalues, mvalues, thresh, dthresh, numSamples, numLines):
     linenr = 1
+
+    numkept = 0
+    numnotkept = 0
+    numfailthresh = 0
+    numfaildthresh = 0
+    numfailboth = 0
+
     print('Reading from ' + filepath + "...\n")
     with open(filepath, 'rt') as tsvfile:
         reader = csv.reader(tsvfile, delimiter='\t')
 
         for line in reader: 
             if(linenr > 1):
-                keep = checkDeltaThresh(line, linenr, numSamples, dthresh)
+                passthresh = checkThresh(line, linenr, thresh)
+                passdthresh = checkDeltaThresh(line, linenr, numSamples, dthresh)
+                keep = passthresh and passdthresh
                 if(keep):
-                    #DO THESE IF LINE PASSES DELTA_THRESH
-                    #  line is indexable w/ array indices 0 - n-1
-                    #  Its an (11+n)-tuple, with the last n being total samples.
-                    #  order is specified in Step 6A. organized by --sample_setX
-                    # print('Line '+str(linenr)+':')
+                    numkept +=1 #####
+                    #### INCLUDE LINE IF PASSES THRESH TESTS ####
                     for itor in range(11, len(line)):
                         inclexcl = line[itor].split(';')
                         yvalues.append(inclexcl[0])
                         sum = float(inclexcl[0]) + float(inclexcl[1])
                         mvalues.append(sum)
-                        # print(str(itor)+': '+line[itor] + '  (Inc: ' + inclexcl[0] + ',Exc: ' + inclexcl[-1] + ')')
-                    # print('\n')
+                else:
+                    numnotkept += 1 #####
+                    if(not(passthresh)):
+                        numfailthresh += 1
+                    if(not(passdthresh)):
+                        numfaildthresh += 1
+                    if(not(passthresh) and not(passdthresh)):
+                        numfailboth += 1
             linenr += 1
+        print("Out of " + str(linenr-2) + " lines, " + str(numkept) + " were kept and " + str(numnotkept) + " were not kept.")
+        print("Number of lines failing thresh test: " + str(numfailthresh))
+        print("Number of lines failing delta_thresh test: " + str(numfaildthresh))
+        print("Number of lines failing both tests: " + str(numfailboth))
 
 #######################################################################
 ###################### Main Loop Execution ############################

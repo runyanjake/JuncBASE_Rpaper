@@ -2,7 +2,7 @@ all:
 	clear
 	make runpy3
 
-failthresh:
+run10lines:
 	@echo Failing the --thresh parameter with a file having less that 10 recorded ASEvents with Python3.x.
 	python3 doubleExpSeq.py --thresh 10 --jb_table ./ExampleCountTables/MM1s_juncBASE_171117_AS_exclusion_inclusion_counts_9Lines.txt
 
@@ -12,7 +12,7 @@ faildeltathresh:
 
 runfullfile:
 	@echo Running doubleExpSeq with Python3.x using the provided file in its entirety.
-	python3 doubleExpSeq.py --thresh 10 --jb_table ./ExampleCountTables/MM1s_juncBASE_171117_AS_exclusion_inclusion_counts.txt
+	python3 doubleExpSeq.py --thresh 10 --delta_thresh 0.5 --jb_table ./ExampleCountTables/MM1s_juncBASE_171117_AS_exclusion_inclusion_counts.txt
 
 run10kfile:
 	@echo Running doubleExpSeq with Python3.x using 10k of the lines from the provided file.
