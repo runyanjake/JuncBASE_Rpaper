@@ -169,16 +169,18 @@ def main():
             contrast = None #"size 2 vector specifying which group levels to compare"
             fdrLevel = None #"thresh for significant event (not same as delta_thresh?)"
             useAllGroups = None #"use contrast's groups to est dispersion?"
+            numRetainedLines = [0] #required for making array. This is clunky python that has to be done this way apparently.
 
             yvalues = [] #python list to be y
             mvalues = [] #python list to be m
             fileLength = getNumLinesNoKey(options.jb_table)
-            parseJBTable(options.jb_table, yvalues, mvalues, options.thresh, (options.delta_thresh / 100.0), getArity(options.jb_table)-11.0, fileLength)
+            parseJBTable(options.jb_table, yvalues, mvalues, options.thresh, (options.delta_thresh / 100.0), getArity(options.jb_table)-11.0, fileLength, numRetainedLines)
 
+            print("THIS MANY WERE KEPT: "  + str(numRetainedLines[0]))
 
-
-            sys.exit()
-
+            # ###################################################################################################################
+            # sys.exit()
+            # ###################################################################################################################
 
 
 
@@ -187,9 +189,9 @@ def main():
             rc = robjects.r['c'] #R vector creation
             yFloatVec = FloatVector(yvalues) #"numeric matrix of inclusion counts"
             mFloatVec = FloatVector(mvalues) #"numeric matrix of total counts (incl+excl)"
-            #matrix rows is arity, number of cols is number of file rows-1
-            y = rmatrix(yFloatVec, nrow=fileLength, ncol=getArity(options.jb_table)-11.0,byrow=True)
-            m = rmatrix(mFloatVec, nrow=fileLength, ncol=getArity(options.jb_table)-11.0,byrow=True)
+            #matrix cols is arity, number of rows is number of rows kept
+            y = rmatrix(yFloatVec, nrow=numRetainedLines[0], ncol=getArity(options.jb_table)-11.0,byrow=True)
+            m = rmatrix(mFloatVec, nrow=numRetainedLines[0], ncol=getArity(options.jb_table)-11.0,byrow=True)
 
             print('Y inputs as rpy2 FloatVector: ')
             print(yFloatVec)
@@ -285,8 +287,9 @@ def checkThresh(line, linenr, thresh):
     for itor in range(11, len(line)):
         inclexcl = line[itor].split(';')
         if(float(inclexcl[0]) + float(inclexcl[1]) < thresh):
-            # print("Line " + str(linenr-2) + " failed thresh test. total read count: " + str(float(inclexcl[0]) + float(inclexcl[1])) + " < " + str(thresh))
+            print("Line " + str(linenr-2) + " failed thresh test. total read count: " + str(float(inclexcl[0]) + float(inclexcl[1])) + " < " + str(thresh))
             return False
+        print("Line " + str(linenr-2) + " passed thresh test. total read count: " + str(float(inclexcl[0]) + float(inclexcl[1])) + " >= " + str(thresh))
     return True
 
 #verify a line to ensure it satisfies the delta-thresh condition
@@ -311,8 +314,9 @@ def checkDeltaThresh(line, linenr, numSamples, dthresh):
             if(this_psi < min_psi):
                 min_psi = this_psi
         if(max_psi - min_psi < dthresh):
-            # print("Line " + str(linenr-2) + " failed delta_thresh test. delta_psi: " + str(max_psi - min_psi) + " < " + str(dthresh))
+            print("Line " + str(linenr-2) + " failed delta_thresh test. delta_psi: " + str(max_psi - min_psi) + " < " + str(dthresh))
             return False
+        print("Line " + str(linenr-2) + " passed delta_thresh test. delta_psi: " + str(max_psi - min_psi) + " >= " + str(dthresh))
         return True
 
 # Reads a JuncBASE table's values into yvalues and mvalues.
@@ -322,10 +326,9 @@ def checkDeltaThresh(line, linenr, numSamples, dthresh):
 # @param dthresh The --delta-thresh value.
 # @param numSamples The number of samples that appear in the table.
 # @param numLines The number of recorded events in the table (number of lines -1)
-def parseJBTable(filepath, yvalues, mvalues, thresh, dthresh, numSamples, numLines):
+def parseJBTable(filepath, yvalues, mvalues, thresh, dthresh, numSamples, numLines, numRetained):
     linenr = 1
 
-    numkept = 0
     numnotkept = 0
     numfailthresh = 0
     numfaildthresh = 0
@@ -341,7 +344,7 @@ def parseJBTable(filepath, yvalues, mvalues, thresh, dthresh, numSamples, numLin
                 passdthresh = checkDeltaThresh(line, linenr, numSamples, dthresh)
                 keep = passthresh and passdthresh
                 if(keep):
-                    numkept +=1 #####
+                    numRetained[0] +=1 #####
                     #### INCLUDE LINE IF PASSES THRESH TESTS ####
                     for itor in range(11, len(line)):
                         inclexcl = line[itor].split(';')
@@ -357,7 +360,7 @@ def parseJBTable(filepath, yvalues, mvalues, thresh, dthresh, numSamples, numLin
                     if(not(passthresh) and not(passdthresh)):
                         numfailboth += 1
             linenr += 1
-        print("Out of " + str(linenr-2) + " lines, " + str(numkept) + " were kept and " + str(numnotkept) + " were not kept.")
+        print("Out of " + str(linenr-2) + " lines, " + str(numRetained[0]) + " were kept and " + str(numnotkept) + " were not kept.")
         print("Number of lines failing thresh test: " + str(numfailthresh))
         print("Number of lines failing delta_thresh test: " + str(numfaildthresh))
         print("Number of lines failing both tests: " + str(numfailboth))
