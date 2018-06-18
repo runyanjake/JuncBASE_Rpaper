@@ -211,36 +211,22 @@ def main():
             print('M inputs as R matrix: ')
             print(m)
 
+            #Add row and colnames so the R function can read things
+            cnames = ["G1_1", "G1_2", "G1_3", "G2_1", "G2_2", "G2_3", "G3_1", "G3_2", "G3_3", "G4_1", "G4_2", "G4_3"]
+            rnames = []
+            itor = 0
+            rprefix = "exon_"
+            while itor < numRetainedLines[0]: 
+                rnames.append(rprefix + str(itor+1))
+                itor = itor+1
+            m.colnames = StrVector(cnames)
+            m.rownames = StrVector(rnames)
 
-            #You can use the = operator in RStudio to perform row/colnames fxn
-            arr = FloatVector([1,2,3,4,5,6,7,8,9,10,11,12])
-            m = rmatrix(arr, ncol=4,byrow=True)
             print(m)
 
-            rcolnames = robjects.r['colnames']
-            m.colnames = StrVector(['a','b','c','d'])
-            print(m)
-
-            # rcolnames(y, do_NULL = True, prefix = "exon")
-            # rcolnames(y, rc("x", "y"))
-            # #-------------------------------------------------
-            # print(str("COLUMN NAMES: " + str(rcolnames(y))))
-            # rcolnames(y, rc(1,1,1,2,2,2,3,3,3,4,4,4))
-            # print(str("COLUMN NAMES 2: " + str(rcolnames(y))))
-
-
-
-
-
-
-
-            ###################################################################################################################
-            sys.exit()
-            ###################################################################################################################
-
-
-            tmp = rc(1, 2, 3, 4, 5)
-            print(tmp)
+            # ###################################################################################################################
+            # sys.exit()
+            # ###################################################################################################################
 
             #set other params
             groups = rc("CTRL", "CTRL", "CTRL",     #1
