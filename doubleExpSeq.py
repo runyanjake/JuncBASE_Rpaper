@@ -16,6 +16,7 @@ import datetime #for naming generated files
 #messing with R matrices
 from rpy2.robjects.packages import importr #messing with R matrices
 from rpy2.robjects import FloatVector #messing with R matrices
+from rpy2.robjects import StrVector #messing with R matrices
 
 #######################################################################
 ####################### CONSTANT DEFINITIONS ##########################
@@ -197,6 +198,10 @@ def main():
             print(yFloatVec)
             print('M inputs as rpy2 FloatVector: ')
             print(mFloatVec)
+            f = open("Matrices.txt", 'w')
+            f.write(str(y))
+            f.write(str(m))
+            f.close()
 
             print('==========================================================================')
             print('==========================================================================')
@@ -205,6 +210,34 @@ def main():
             print(y)
             print('M inputs as R matrix: ')
             print(m)
+
+
+            #You can use the = operator in RStudio to perform row/colnames fxn
+            arr = FloatVector([1,2,3,4,5,6,7,8,9,10,11,12])
+            m = rmatrix(arr, ncol=4,byrow=True)
+            print(m)
+
+            rcolnames = robjects.r['colnames']
+            m.colnames = StrVector(['a','b','c','d'])
+            print(m)
+
+            # rcolnames(y, do_NULL = True, prefix = "exon")
+            # rcolnames(y, rc("x", "y"))
+            # #-------------------------------------------------
+            # print(str("COLUMN NAMES: " + str(rcolnames(y))))
+            # rcolnames(y, rc(1,1,1,2,2,2,3,3,3,4,4,4))
+            # print(str("COLUMN NAMES 2: " + str(rcolnames(y))))
+
+
+
+
+
+
+
+            ###################################################################################################################
+            sys.exit()
+            ###################################################################################################################
+
 
             tmp = rc(1, 2, 3, 4, 5)
             print(tmp)
@@ -224,7 +257,8 @@ def main():
             print('Done.')
 
             print('Running DBGLM1...')
-            fullResults = DoubleExpSeq.DBGLM1(y,m,groups,shrinkMethod,contrast,fdrLevel,useAllGroups)
+            # fullResults = DoubleExpSeq.DBGLM1(y,m,groups,shrinkMethod,contrast,fdrLevel,useAllGroups)
+            fullResults = DoubleExpSeq.DBGLM1(y,m,groups)
             sigResults = fullResults.rx("Sig") #grab just the $Sig matrix
             print('Done.')
 
@@ -287,9 +321,9 @@ def checkThresh(line, linenr, thresh):
     for itor in range(11, len(line)):
         inclexcl = line[itor].split(';')
         if(float(inclexcl[0]) + float(inclexcl[1]) < thresh):
-            print("Line " + str(linenr-2) + " failed thresh test. total read count: " + str(float(inclexcl[0]) + float(inclexcl[1])) + " < " + str(thresh))
+            # print("Line " + str(linenr-2) + " failed thresh test. total read count: " + str(float(inclexcl[0]) + float(inclexcl[1])) + " < " + str(thresh))
             return False
-        print("Line " + str(linenr-2) + " passed thresh test. total read count: " + str(float(inclexcl[0]) + float(inclexcl[1])) + " >= " + str(thresh))
+        # print("Line " + str(linenr-2) + " passed thresh test. total read count: " + str(float(inclexcl[0]) + float(inclexcl[1])) + " >= " + str(thresh))
     return True
 
 #verify a line to ensure it satisfies the delta-thresh condition
@@ -314,9 +348,9 @@ def checkDeltaThresh(line, linenr, numSamples, dthresh):
             if(this_psi < min_psi):
                 min_psi = this_psi
         if(max_psi - min_psi < dthresh):
-            print("Line " + str(linenr-2) + " failed delta_thresh test. delta_psi: " + str(max_psi - min_psi) + " < " + str(dthresh))
+            # print("Line " + str(linenr-2) + " failed delta_thresh test. delta_psi: " + str(max_psi - min_psi) + " < " + str(dthresh))
             return False
-        print("Line " + str(linenr-2) + " passed delta_thresh test. delta_psi: " + str(max_psi - min_psi) + " >= " + str(dthresh))
+        # print("Line " + str(linenr-2) + " passed delta_thresh test. delta_psi: " + str(max_psi - min_psi) + " >= " + str(dthresh))
         return True
 
 # Reads a JuncBASE table's values into yvalues and mvalues.
