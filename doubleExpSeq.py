@@ -174,8 +174,9 @@ def main():
 
             yvalues = [] #python list to be y
             mvalues = [] #python list to be m
+            rnames = [] #python list holding the exon #'s that are kept (holds ints)
             fileLength = getNumLinesNoKey(options.jb_table)
-            parseJBTable(options.jb_table, yvalues, mvalues, options.thresh, (options.delta_thresh / 100.0), getArity(options.jb_table)-11.0, fileLength, numRetainedLines)
+            parseJBTable(options.jb_table, yvalues, mvalues, options.thresh, (options.delta_thresh / 100.0), getArity(options.jb_table)-11.0, fileLength, numRetainedLines, rnames)
 
             print("THIS MANY WERE KEPT: "  + str(numRetainedLines[0]))
 
@@ -194,39 +195,33 @@ def main():
             y = rmatrix(yFloatVec, nrow=numRetainedLines[0], ncol=getArity(options.jb_table)-11.0,byrow=True)
             m = rmatrix(mFloatVec, nrow=numRetainedLines[0], ncol=getArity(options.jb_table)-11.0,byrow=True)
 
-            print('Y inputs as rpy2 FloatVector: ')
-            print(yFloatVec)
-            print('M inputs as rpy2 FloatVector: ')
-            print(mFloatVec)
+            #Add row and colnames so the R function can read things
+            #Exons are now labelled by 
+            cnames = ["G1_1", "G1_2", "G1_3", "G2_1", "G2_2", "G2_3", "G3_1", "G3_2", "G3_3", "G4_1", "G4_2", "G4_3"]
+            # rnames = [] Rnames filled in parseJBTable so that correct line identifiers could be used.
+            itor = 0
+            # rprefix = "exon_"
+            # while itor < numRetainedLines[0]: 
+            #     rnames.append(rprefix + str(itor+1))
+            #     itor = itor+1
+            m.colnames = StrVector(cnames) 
+            m.rownames = StrVector(rnames) #need to individualize
+            y.colnames = StrVector(cnames)
+            y.rownames = StrVector(rnames) #need to individualize
+
+            print("HERE IS THE LABELLED MATRICEs")
+            print(m)
+            print(y)
+            print("THIS MANY WERE KEPT: "  + str(numRetainedLines[0]))
+
             f = open("Matrices.txt", 'w')
             f.write(str(y))
             f.write(str(m))
             f.close()
 
-            print('==========================================================================')
-            print('==========================================================================')
-
-            print('Y inputs as R matrix: ')
-            print(y)
-            print('M inputs as R matrix: ')
-            print(m)
-
-            #Add row and colnames so the R function can read things
-            cnames = ["G1_1", "G1_2", "G1_3", "G2_1", "G2_2", "G2_3", "G3_1", "G3_2", "G3_3", "G4_1", "G4_2", "G4_3"]
-            rnames = []
-            itor = 0
-            rprefix = "exon_"
-            while itor < numRetainedLines[0]: 
-                rnames.append(rprefix + str(itor+1))
-                itor = itor+1
-            m.colnames = StrVector(cnames)
-            m.rownames = StrVector(rnames)
-
-            print(m)
-
-            # ###################################################################################################################
-            # sys.exit()
-            # ###################################################################################################################
+            ###################################################################################################################
+            sys.exit()
+            ###################################################################################################################
 
             #set other params
             groups = rc("CTRL", "CTRL", "CTRL",     #1
@@ -346,7 +341,7 @@ def checkDeltaThresh(line, linenr, numSamples, dthresh):
 # @param dthresh The --delta-thresh value.
 # @param numSamples The number of samples that appear in the table.
 # @param numLines The number of recorded events in the table (number of lines -1)
-def parseJBTable(filepath, yvalues, mvalues, thresh, dthresh, numSamples, numLines, numRetained):
+def parseJBTable(filepath, yvalues, mvalues, thresh, dthresh, numSamples, numLines, numRetained, rnames):
     linenr = 1
 
     numnotkept = 0
@@ -364,6 +359,7 @@ def parseJBTable(filepath, yvalues, mvalues, thresh, dthresh, numSamples, numLin
                 passdthresh = checkDeltaThresh(line, linenr, numSamples, dthresh)
                 keep = passthresh and passdthresh
                 if(keep):
+                    rnames.append("exon_" + str(linenr-1))
                     numRetained[0] +=1 #####
                     #### INCLUDE LINE IF PASSES THRESH TESTS ####
                     for itor in range(11, len(line)):

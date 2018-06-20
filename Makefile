@@ -18,6 +18,10 @@ run10kfile:
 	@echo Running doubleExpSeq with Python3.x using 10k of the lines from the provided file.
 	python3 doubleExpSeq.py --thresh 10 --jb_table ./ExampleCountTables/MM1s_juncBASE_171117_AS_exclusion_inclusion_counts_10kLines.txt
 
+run1kfile:
+	@echo Running doubleExpSeq with Python3.x using 10k of the lines from the provided file.
+	python3 doubleExpSeq.py --thresh 10 --jb_table ./ExampleCountTables/MM1s_juncBASE_171117_AS_exclusion_inclusion_counts_1kLines.txt
+
 initialize:
 	python3 doubleExpSeq.py --initialize --thresh 10 --jb_table ./ExampleCountTables/MM1s_juncBASE_171117_AS_exclusion_inclusion_counts_10kLines.txt
 
