@@ -197,17 +197,11 @@ def main():
 
             #Add row and colnames so the R function can read things
             #Exons are now labelled by 
-            cnames = ["G1_1", "G1_2", "G1_3", "G2_1", "G2_2", "G2_3", "G3_1", "G3_2", "G3_3", "G4_1", "G4_2", "G4_3"]
-            # rnames = [] Rnames filled in parseJBTable so that correct line identifiers could be used.
-            itor = 0
-            # rprefix = "exon_"
-            # while itor < numRetainedLines[0]: 
-            #     rnames.append(rprefix + str(itor+1))
-            #     itor = itor+1
+            cnames = rc("G1_1", "G1_2", "G1_3", "G2_1", "G2_2", "G2_3", "G3_1", "G3_2", "G3_3", "G4_1", "G4_2", "G4_3")
             m.colnames = StrVector(cnames) 
-            m.rownames = StrVector(rnames) #need to individualize
+            m.rownames = StrVector(rnames)
             y.colnames = StrVector(cnames)
-            y.rownames = StrVector(rnames) #need to individualize
+            y.rownames = StrVector(rnames)
 
             print("HERE IS THE LABELLED MATRICEs")
             print(m)
@@ -224,7 +218,7 @@ def main():
             # ###################################################################################################################
 
             #set other params
-            groups = rc("CTRL", "CTRL", "CTRL",     #1
+            groups = rc("CTRL", "CTRL", "CTRL",     #1 #NOTE: Groups should probably be determined based on the cnames variable that must be passed in.
                         "E7107", "E7107", "E7107",  #2
                         "MELPH", "MELPH", "MELPH",  #3  
                         "CFZ", "CFZ", "CFZ")        #4
@@ -238,9 +232,16 @@ def main():
             print('Done.')
 
             print('Running DBGLM1...')
-            # fullResults = DoubleExpSeq.DBGLM1(y,m,groups,shrinkMethod,contrast,fdrLevel,useAllGroups)
-            fullResults = DoubleExpSeq.DBGLM1(y,m,groups)
-            sigResults = fullResults.rx("Sig") #grab just the $Sig matrix
+            # resultsG1G2WEB = DoubleExpSeq.DBGLM1(y,m,groups,shrinkMethod,contrast,fdrLevel,useAllGroups)
+            resultsG1G2WEB = DoubleExpSeq.DBGLM1(y,m,groups)
+            WEBsig = resultsG1G2WEB.rx("Sig") #grab just the $Sig matrix
+
+
+
+            fakepoints = rc("exon_1", "exon_2", "exon_3", "exon_4", "exon_5", "exon_6", "exon_7", "exon_8", "exon_9", "exon_10", "exon_11", "exon_12", "exon_13", "exon_14", "exon_15", "exon_16", "exon_17", "exon_18", "exon_19", "exon_20", "exon_21", "exon_22", "exon_23")
+            
+            
+            
             print('Done.')
 
             #Dump R script output to a text file if it is required.
@@ -249,13 +250,13 @@ def main():
             now = datetime.datetime.now()
             datafile = options.jb_table[(options.jb_table.rfind("/")+1):(len(options.jb_table) - 4)] + '_doubleExpSeqOutdata_' + str(now.month) + '-' + str(now.day) + '.' + str(now.hour) + ':' + str(now.minute) + '_' + '.txt'
             f = open(datafile, 'w')
-            f.write(str(fullResults))
+            f.write(str(resultsG1G2WEB))
             f.close()
             print('Done.')
 
             #Generate an M-A Plot
             print('Creating an M-A plot...')
-            DoubleExpSeq.DB_MAPlot(y,m,groups,contrast=contrast,main=datafile)
+            DoubleExpSeq.DB_MAPlot(y,m,groups,contrast=contrast, de_tags=fakepoints,main=datafile)
             print('Done.')
 
 #######################################################################
