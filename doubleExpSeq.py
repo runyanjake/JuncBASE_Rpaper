@@ -234,13 +234,12 @@ def main():
             print('Running DBGLM1...')
             # resultsG1G2WEB = DoubleExpSeq.DBGLM1(y,m,groups,shrinkMethod,contrast,fdrLevel,useAllGroups)
             resultsG1G2WEB = DoubleExpSeq.DBGLM1(y,m,groups)
-            WEBsig = resultsG1G2WEB.rx("Sig") #grab just the $Sig matrix
+            WEBsig = resultsG1G2WEB.rx2("Sig") #grab just the $Sig matrix
 
+            rrownames = robjects.r['rownames']
+            rownames = rrownames(WEBsig)
 
-
-            fakepoints = rc("exon_1", "exon_2", "exon_3", "exon_4", "exon_5", "exon_6", "exon_7", "exon_8", "exon_9", "exon_10", "exon_11", "exon_12", "exon_13", "exon_14", "exon_15", "exon_16", "exon_17", "exon_18", "exon_19", "exon_20", "exon_21", "exon_22", "exon_23")
-            
-            
+            print(rownames)
             
             print('Done.')
 
