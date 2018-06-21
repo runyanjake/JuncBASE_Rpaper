@@ -12,7 +12,7 @@ faildeltathresh:
 
 runfullfile:
 	@echo Running doubleExpSeq with Python3.x using the provided file in its entirety.
-	python3 doubleExpSeq.py --thresh 4 --delta_thresh 5.0 --jb_table ./ExampleCountTables/MM1s_juncBASE_171117_AS_exclusion_inclusion_counts.txt
+	python3 doubleExpSeq.py --thresh 10 --delta_thresh 5.0 --jb_table ./ExampleCountTables/MM1s_juncBASE_171117_AS_exclusion_inclusion_counts.txt
 
 run10kfile:
 	@echo Running doubleExpSeq with Python3.x using 10k of the lines from the provided file.
@@ -24,6 +24,10 @@ run1kfile:
 
 initialize:
 	python3 doubleExpSeq.py --initialize --thresh 10 --jb_table ./ExampleCountTables/MM1s_juncBASE_171117_AS_exclusion_inclusion_counts_10kLines.txt
+
+cmdlinetester:
+	@echo Testing command line arguments.
+	python3 doubleExpSeq.py --debug 1 --thresh 10 --delta_thresh 5.0 --jb_table ./ExampleCountTables/MM1s_juncBASE_171117_AS_exclusion_inclusion_counts.txt
 
 runpy2:
 	@echo Running doubleExpSeq with Python2.x.
