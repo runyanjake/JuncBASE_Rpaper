@@ -190,16 +190,6 @@ def main():
         tmpstr3 = rc(*options.col_labels)
         print("TMP3: " + str(tmpstr3))
 
-        #create the group labels. (should be similar.)
-        groups_pylist = []
-        for label in options.col_labels:
-            firstinstance = label.find('_')
-            identifier = label[:firstinstance]
-            groups_pylist.append(identifier)
-
-        groups = rc(*groups_pylist)
-        print("GROUPS: " + str(groups))
-
 
 
 
@@ -265,6 +255,19 @@ def main():
                     "E7107", "E7107", "E7107",  #2
                     "MELPH", "MELPH", "MELPH",  #3  
                     "CFZ", "CFZ", "CFZ")        #4
+
+
+        #create the group labels.
+        groups_pylist = []
+        for label in options.col_labels:
+            firstinstance = label.find('_')
+            identifier = label[:firstinstance]
+            groups_pylist.append(identifier)
+        print("GROUPS: " + str(groups))
+        groups = rc(*groups_pylist)
+        print("GROUPS2: " + str(groups))
+        exit(1)
+        
         shrinkMethod = rc("WEB")
         contrast = rc(2,3) #the INDICES we compare ^
         fdrLevel = 0.05
