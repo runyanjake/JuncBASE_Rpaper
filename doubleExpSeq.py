@@ -46,6 +46,9 @@ class OptionParser(optparse.OptionParser):
             self.print_help()
             sys.exit(1)
 
+def tokenizeargs(option, opt, value, parser):
+    setattr(parser.values, option.dest, value.split(','))
+
 #######################################################################
 ###################### Main Loop Definition ###########################
 #######################################################################
@@ -67,9 +70,22 @@ def main():
     optionParser.add_option("--jb_table",
                         dest="jb_table",
                         type="string",
-                        help="""The full path and filename of the 
+                        help="""(REQUIRED) The full path and filename of the 
                             JuncBASE table that will be used
                             for all calculations.""",
+                        default=None)
+    optionParser.add_option("--col_labels",
+                        dest="col_labels",
+                        type="string",
+                        action='callback',
+                        callback=tokenizeargs,
+                        help="""(REQUIRED) Comma delimited list of column
+                         identifiers for replicates. MUST be 
+                         of form 'S1_1' where LHS is sample 
+                         identifier and RHS is replicate identifier.
+                         Example: --col_labels "G1_1, G1_2, 
+                         G1_3, G2_1, G2_2, G2_3, G3_1, 
+                         G3_2, G3_3, G4_1, G4_2, G4_3" """,
                         default=None)
     optionParser.add_option("--thresh",
                         dest="thresh",
@@ -106,17 +122,6 @@ def main():
                         default=False,
                         help="""Optional debugging statements.
                             '--debug' to enable. """)
-    optionParser.add_option("--col_labels",
-                        dest="columnlabels",
-                        type="string",
-                        help="""Comma delimited list of column
-                         identifiers for replicates. MUST be 
-                         of form 'S1_1' where LHS is sample 
-                         identifier and RHS is replicate identifier.
-                         Example: --col_labels 'G1_1", "G1_2", 
-                         "G1_3", "G2_1", "G2_2", "G2_3", "G3_1", 
-                         "G3_2", "G3_3", "G4_1", "G4_2", "G4_3"' """,
-                        default=None)
     #grab arguments & put into list
     (options, args) = optionParser.parse_args()
 
@@ -148,7 +153,7 @@ def main():
 
         #### CHECK REQUIRED ARGUMENTS ARE SUPPLIED ####
         optionParser.check_required("--jb_table")
-        # optionParser.check_required("--col_labels")
+        optionParser.check_required("--col_labels")
         # optionParser.check_required("--thresh")
         # optionParser.check_required("--delta_thresh")
         # optionParser.check_required("--sample_set1")
@@ -158,8 +163,20 @@ def main():
         checkImportantFiles(options.jb_table)
 
         #### CHECK ARITY OF TABLE MATCHES SIZE OF COLNAMES ####
-
-
+        print("LABELS: " + str(options.col_labels))
+        tmp = ""
+        for tag in options.col_labels:
+            if tmp=="":
+                tmp = "'" + tag + "'"
+            else:
+                tmp = tmp + ", " + "'" + tag + "'"
+        rc = robjects.r['c']
+        tmpstr = rc(tmp)
+        print("TMP: " + str(tmpstr))
+        tmpstr2 = rc('a','b','c','d','e','f','g','h')
+        print("TMP2: " + str(tmpstr2))
+        tmpstr3 = rc(*options.col_labels)
+        print("TMP3: " + str(tmpstr3))
 
 
 
