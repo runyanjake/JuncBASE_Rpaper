@@ -80,7 +80,8 @@ def main():
                         action='callback',
                         callback=tokenizeargs,
                         help="""(REQUIRED) Comma delimited list of column
-                         identifiers for replicates. MUST be 
+                         identifiers for replicates. Section before '_' 
+                         is used to group samples. MUST be 
                          of form 'S1_1' where LHS is sample 
                          identifier and RHS is replicate identifier.
                          Example: --col_labels "G1_1, G1_2, 
@@ -162,19 +163,30 @@ def main():
         #### ENSURE SUPPLIED TABLE EXISTS #### 
         checkImportantFiles(options.jb_table)
 
-        #### CHECK ARITY OF TABLE MATCHES SIZE OF COLNAMES ####
-        print("LABELS: " + str(options.col_labels))
-        tmp = ""
-        for tag in options.col_labels:
-            if tmp=="":
-                tmp = "'" + tag + "'"
-            else:
-                tmp = tmp + ", " + "'" + tag + "'"
+        #### CHECK ARITY OF TABLE MATCHES SIZE OF COLNAMES AND THAT EACH LABEL IS FORMATTED CORRECTLY ####
+        numcolsgiven = len(options.col_labels)
+        filecolumns = getArity(options.jb_table)-11
+        if numcolsgiven != filecolumns: #arity must match for labels and matrix
+            print("\n\n")
+            tb = sys.exc_info()[2]
+            raise Exception("\nNumber of column labels (" + str(numcolsgiven) + ") did not equal the number of data columns inferred from the given JuncBASE file (" + str(filecolumns) + "). Review the sizes and try again.").with_traceback(tb)
+            exit(1)
+        for label in options.col_labels: #section before each sample's underscore should be a non-null substring
+            firstinstance = label.find('_')
+            if firstinstance == -1: #has no underscore NOTE: this might be ok without but for now will leave in.
+                print("\n\n")
+                tb = sys.exc_info()[2]
+                raise Exception("Column labels must be of the form 'S1_1' where LHS is sample identifier and RHS is replicate identifier. Example: --col_labels 'G1_1, G1_2, G1_3, G2_1, G2_2, G2_3, G3_1, G3_2, G3_3, G4_1, G4_2, G4_3'").with_traceback(tb)
+                exit(1)
+            identifier = label[:firstinstance-1]
+            if identifier=="_": #identifiers of the form _1 are not ok
+                print("\n\n")
+                tb = sys.exc_info()[2]
+                raise Exception("Samples cannot be identified with an empty string. (Put something to the left of the underscore that is a unique identifier for a sample.)").with_traceback(tb)
+                exit(1)
+
+        #the correct way to use splat operator to map array as function args
         rc = robjects.r['c']
-        tmpstr = rc(tmp)
-        print("TMP: " + str(tmpstr))
-        tmpstr2 = rc('a','b','c','d','e','f','g','h')
-        print("TMP2: " + str(tmpstr2))
         tmpstr3 = rc(*options.col_labels)
         print("TMP3: " + str(tmpstr3))
 
