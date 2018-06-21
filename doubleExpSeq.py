@@ -178,8 +178,8 @@ def main():
                 tb = sys.exc_info()[2]
                 raise Exception("Column labels must be of the form 'S1_1' where LHS is sample identifier and RHS is replicate identifier. Example: --col_labels 'G1_1, G1_2, G1_3, G2_1, G2_2, G2_3, G3_1, G3_2, G3_3, G4_1, G4_2, G4_3'").with_traceback(tb)
                 exit(1)
-            identifier = label[:firstinstance-1]
-            if identifier=="_": #identifiers of the form _1 are not ok
+            identifier = label[:firstinstance]
+            if identifier=="": #identifiers of the form _1 are not ok
                 print("\n\n")
                 tb = sys.exc_info()[2]
                 raise Exception("Samples cannot be identified with an empty string. (Put something to the left of the underscore that is a unique identifier for a sample.)").with_traceback(tb)
@@ -190,6 +190,15 @@ def main():
         tmpstr3 = rc(*options.col_labels)
         print("TMP3: " + str(tmpstr3))
 
+        #create the group labels. (should be similar.)
+        groups_pylist = []
+        for label in options.col_labels:
+            firstinstance = label.find('_')
+            identifier = label[:firstinstance]
+            groups_pylist.append(identifier)
+
+        groups = rc(*groups_pylist)
+        print("GROUPS: " + str(groups))
 
 
 
