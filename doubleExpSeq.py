@@ -251,25 +251,14 @@ def main():
         # ###################################################################################################################
 
         #set other params
-        groups = rc("CTRL", "CTRL", "CTRL",     #1 #NOTE: Groups should probably be determined based on the cnames variable that must be passed in.
-                    "E7107", "E7107", "E7107",  #2
-                    "MELPH", "MELPH", "MELPH",  #3  
-                    "CFZ", "CFZ", "CFZ")        #4
-
-
-        #create the group labels.
-        groups_pylist = []
+        groups_pylist = [] #create the group labels.
         for label in options.col_labels:
             firstinstance = label.find('_')
             identifier = label[:firstinstance]
             groups_pylist.append(identifier)
-        print("GROUPS: " + str(groups))
         groups = rc(*groups_pylist)
-        print("GROUPS2: " + str(groups))
-        exit(1)
-        
         shrinkMethod = rc("WEB")
-        contrast = rc(2,3) #the INDICES we compare ^
+        contrast = rc(3,4) #the INDICES we compare ^
         fdrLevel = 0.05
         useAllGroups = True
 
