@@ -235,12 +235,10 @@ def main():
             # resultsG1G2WEB = DoubleExpSeq.DBGLM1(y,m,groups,shrinkMethod,contrast,fdrLevel,useAllGroups)
             resultsG1G2WEB = DoubleExpSeq.DBGLM1(y,m,groups)
             WEBsig = resultsG1G2WEB.rx2("Sig") #grab just the $Sig matrix
-
+            #grab the rownames
             rrownames = robjects.r['rownames']
             rownames = rrownames(WEBsig)
-
-            print(rownames)
-            
+            # print(rownames)
             print('Done.')
 
             #Dump R script output to a text file if it is required.
