@@ -64,22 +64,6 @@ def main():
     # --sample_set2    | prefix for the other set of samples
     # NOTE: prefixes come from JBase table entries (last 2n cols)
     optionParser = OptionParser()
-    optionParser.add_option("--initialize",
-                        action="store_true", 
-                        dest="is_first_run", 
-                        default=False,
-                        help="""Before running, we must import the R 
-                            package. First run this script with 
-                            '--initialize' to import the package.
-                            You should see about 8 runtime warnings
-                            and a message noting where files have been
-                            installed. """)
-    optionParser.add_option("--debug",
-                        dest="debug",
-                        type="string",
-                        help="""Optional debugging statements.
-                            '--debug 1' to enable. """,
-                        default="0")
     optionParser.add_option("--jb_table",
                         dest="jb_table",
                         type="string",
@@ -106,27 +90,38 @@ def main():
                                 associated events. Default=%s""" 
                                 % DEF_DPSI_THRESH,
                         default=DEF_DPSI_THRESH)
-    optionParser.add_option("--sample_set1",
-                        dest="sample_set1",
+    optionParser.add_option("--initialize",
+                        action="store_true", 
+                        dest="is_first_run", 
+                        default=False,
+                        help="""Before running, we must import the R 
+                            package. First run this script with 
+                            '--initialize' to import the package.
+                            You should see about 8 runtime warnings
+                            and a message noting where files have been
+                            installed. """)
+    optionParser.add_option("--debug",
+                        action="store_true", 
+                        dest="debug", 
+                        default=False,
+                        help="""Optional debugging statements.
+                            '--debug' to enable. """)
+    optionParser.add_option("--col_labels",
+                        dest="columnlabels",
                         type="string",
-                        help="""Comma delimited list of samples in set 
-                            1 or a file with a list of names, one 
-                            per line. Names must be in header 
-                            columns of input files.""",
-                        default=None)
-    optionParser.add_option("--sample_set2",
-                        dest="sample_set2",
-                        type="string",
-                        help="""Comma delimited list of samples in set 
-                            2 or a file with a list of names, one 
-                            per line. Names must be in header 
-                            columns of input files.""",
+                        help="""Comma delimited list of column
+                         identifiers for replicates. MUST be 
+                         of form 'S1_1' where LHS is sample 
+                         identifier and RHS is replicate identifier.
+                         Example: --col_labels 'G1_1", "G1_2", 
+                         "G1_3", "G2_1", "G2_2", "G2_3", "G3_1", 
+                         "G3_2", "G3_3", "G4_1", "G4_2", "G4_3"' """,
                         default=None)
     #grab arguments & put into list
     (options, args) = optionParser.parse_args()
 
     #setup debug statments
-    if(options.debug != "0"):
+    if(options.debug):
         DEBUG_STMTS.append(True)
     else:
         DEBUG_STMTS.append(False)
@@ -153,6 +148,7 @@ def main():
 
         #### CHECK REQUIRED ARGUMENTS ARE SUPPLIED ####
         optionParser.check_required("--jb_table")
+        # optionParser.check_required("--col_labels")
         # optionParser.check_required("--thresh")
         # optionParser.check_required("--delta_thresh")
         # optionParser.check_required("--sample_set1")
@@ -160,6 +156,15 @@ def main():
 
         #### ENSURE SUPPLIED TABLE EXISTS #### 
         checkImportantFiles(options.jb_table)
+
+        #### CHECK ARITY OF TABLE MATCHES SIZE OF COLNAMES ####
+
+
+
+
+
+
+
 
         #Read JB tables into R-objects compatible with DBGLM1
         #and can be passed by reference/changed in method

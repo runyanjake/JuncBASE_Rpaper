@@ -27,11 +27,11 @@ initialize:
 
 cmdlinetester:
 	@echo Testing command line arguments.
-	python3 doubleExpSeq.py --debug 1 --thresh 10 --delta_thresh 5.0 --jb_table ./ExampleCountTables/MM1s_juncBASE_171117_AS_exclusion_inclusion_counts.txt
+	python3 doubleExpSeq.py --debug --thresh 10 --delta_thresh 5.0 --jb_table ./ExampleCountTables/MM1s_juncBASE_171117_AS_exclusion_inclusion_counts.txt
 
 runpy2:
 	@echo Running doubleExpSeq with Python2.x.
 	python2 doubleExpSeq.py
 runpy3:
 	@echo Running doubleExpSeq with Python3.x.
-	python3 doubleExpSeq.py --debug 1 --thresh 10 --jb_table ./ExampleCountTables/MM1s_juncBASE_171117_AS_exclusion_inclusion_counts_SAMPLE.txt
+	python3 doubleExpSeq.py --debug --thresh 10 --jb_table ./ExampleCountTables/MM1s_juncBASE_171117_AS_exclusion_inclusion_counts_SAMPLE.txt
