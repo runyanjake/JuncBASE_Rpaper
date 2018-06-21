@@ -255,7 +255,7 @@ def main():
 
             #Generate an M-A Plot
             print('Creating an M-A plot...')
-            DoubleExpSeq.DB_MAPlot(y,m,groups,contrast=contrast, de_tags=fakepoints,main=datafile)
+            DoubleExpSeq.DB_MAPlot(y,m,groups,contrast=contrast, de_tags=rownames,main=datafile)
             print('Done.')
 
 #######################################################################
