@@ -254,7 +254,9 @@ def main():
             #Generate an M-A Plot
             print('Creating an M-A plot...')
             MAtitle = "M-A Plot Sample " + str(contrast[0]) + " vs " + str(contrast[1]) + " on " + str(now.month) + '/' + str(now.day) + ' ' + str(now.hour) + ':' + str(now.minute)
-            DoubleExpSeq.DB_MAPlot(y,m,groups,contrast=contrast, de_tags=rownames,main=MAtitle,xlab="X LABEL",ylab="Y LABEL")
+            tmp = DoubleExpSeq.DB_MAPlot(y,m,groups,contrast=contrast, de_tags=rownames,main=MAtitle,xlab="XLABEL",ylab="YLABEL")
+            print(tmp)
+            #(this returns 2 lists of points as hidden data (give var for return val) along with the pdf)
             print('Done.')
 
 #######################################################################
