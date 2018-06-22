@@ -67,6 +67,17 @@ def main():
     # --sample_set2    | prefix for the other set of samples
     # NOTE: prefixes come from JBase table entries (last 2n cols)
     optionParser = OptionParser()
+    optionParser.add_option("--initialize",
+                        action="store_true", 
+                        dest="is_first_run", 
+                        default=False,
+                        help="""(REQUIRED ON FIRST RUN ONLY)
+                            Before running, we must import the R 
+                            package. First run this script with 
+                            '--initialize' to import the package.
+                            You should see about 8 runtime warnings
+                            and a message noting where files have been
+                            installed. """)
     optionParser.add_option("--jb_table",
                         dest="jb_table",
                         type="string",
@@ -107,22 +118,39 @@ def main():
                                 associated events. Default=%s""" 
                                 % DEF_DPSI_THRESH,
                         default=DEF_DPSI_THRESH)
-    optionParser.add_option("--initialize",
-                        action="store_true", 
-                        dest="is_first_run", 
-                        default=False,
-                        help="""Before running, we must import the R 
-                            package. First run this script with 
-                            '--initialize' to import the package.
-                            You should see about 8 runtime warnings
-                            and a message noting where files have been
-                            installed. """)
     optionParser.add_option("--debug",
                         action="store_true", 
                         dest="debug", 
                         default=False,
                         help="""Optional debugging statements.
                             '--debug' to enable. """)
+    optionParser.add_option("--store_dbglm1_output",
+                        action="store_true", 
+                        dest="store_dbglm1_output", 
+                        default=False,
+                        help="""Stores the return value of the 
+                        DBGLM1 call into the file specified by 
+                        --dbglm1_output_filename.""")
+    optionParser.add_option("--dbglm1_output_filename",
+                        dest="dbglm1_output_filename",
+                        type="string",
+                        help="""The name of the file to store 
+                        DBGLM1 output if --store_dbglm1_output 
+                        option is supplied. Default is dbglm1out.txt""",
+                        default="dbglm1out.txt")
+    optionParser.add_option("--store_MAraw",
+                        action="store_true", 
+                        dest="store_MAraw", 
+                        default=False,
+                        help="""Stores the MA plot's raw values into 
+                        the file specified by --store_MAraw_filename.""")
+    optionParser.add_option("--store_MAraw_filename",
+                        dest="store_MAraw_filename",
+                        type="string",
+                        help="""The name of the file to store 
+                        MA plot's raw values if --store_MAraw 
+                        option is supplied. Default is marawout.txt""",
+                        default="marawout.txt")
     #grab arguments & put into list
     (options, args) = optionParser.parse_args()
 
@@ -210,14 +238,7 @@ def main():
         rnames = [] #python list holding the exon #'s that are kept (holds ints)
         fileLength = getNumLinesNoKey(options.jb_table)
         parseJBTable(options.jb_table, yvalues, mvalues, options.thresh, (options.delta_thresh / 100.0), getArity(options.jb_table)-11.0, fileLength, numRetainedLines, rnames)
-
-        log("THIS MANY WERE KEPT: "  + str(numRetainedLines[0]))
-
-        # ###################################################################################################################
-        # sys.exit()
-        # ###################################################################################################################
-
-
+        log("THIS MANY TABLE LINES WERE KEPT: "  + str(numRetainedLines[0]))
 
         #convert python lists to matrices for R 
         rmatrix = robjects.r['matrix'] #matrix creation
@@ -230,25 +251,14 @@ def main():
 
         #Add row and colnames so the R function can read things
         #Exons are now labelled by 
-        cnames = rc("G1_1", "G1_2", "G1_3", "G2_1", "G2_2", "G2_3", "G3_1", "G3_2", "G3_3", "G4_1", "G4_2", "G4_3")
+        cnames = rc(*options.col_labels) #rc("G1_1", "G1_2", "G1_3", "G2_1", "G2_2", "G2_3", "G3_1", "G3_2", "G3_3", "G4_1", "G4_2", "G4_3")
         m.colnames = StrVector(cnames) 
         m.rownames = StrVector(rnames)
         y.colnames = StrVector(cnames)
         y.rownames = StrVector(rnames)
-
         log("HERE ARE THE LABELLED MATRICEs")
         log(m)
         log(y)
-        log("THIS MANY WERE KEPT: "  + str(numRetainedLines[0]))
-
-        f = open("Matrices.txt", 'w')
-        f.write(str(y))
-        f.write(str(m))
-        f.close()
-
-        # ###################################################################################################################
-        # sys.exit()
-        # ###################################################################################################################
 
         #set other params
         groups_pylist = [] #create the group labels.
@@ -276,20 +286,27 @@ def main():
 
         #Dump R script output to a text file if it is required.
         #assumes there's a .txt ending. otherwise filesize must be > 4chars.
-        log('Dumping DBGLM1 output to file...')
-        now = datetime.datetime.now()
-        datafile = options.jb_table[(options.jb_table.rfind("/")+1):(len(options.jb_table) - 4)] + '_doubleExpSeqOutdata_' + str(now.month) + '-' + str(now.day) + '.' + str(now.hour) + ':' + str(now.minute) + '_' + '.txt'
-        f = open(datafile, 'w')
-        f.write(str(resultsG1G2WEB))
-        f.close()
-        log('Done.')
+        if options.store_dbglm1_output:
+            log('Dumping DBGLM1 output to file...')
+            # now = datetime.datetime.now()
+            # datafile = options.jb_table[(options.jb_table.rfind("/")+1):(len(options.jb_table) - 4)] + '_doubleExpSeqOutdata_' + str(now.month) + '-' + str(now.day) + '.' + str(now.hour) + ':' + str(now.minute) + '_' + '.txt'
+            f = open(options.dbglm1_output_filename, 'w')
+            f.write(str(resultsG1G2WEB))
+            f.close()
+            log('Done.')
 
         #Generate an M-A Plot
         log('Creating an M-A plot...')
+        now = datetime.datetime.now()
         MAtitle = "M-A Plot Sample " + str(contrast[0]) + " vs " + str(contrast[1]) + " on " + str(now.month) + '/' + str(now.day) + ' ' + str(now.hour) + ':' + str(now.minute)
-        tmp = DoubleExpSeq.DB_MAPlot(y,m,groups,contrast=contrast, de_tags=rownames,main=MAtitle,xlab="XLABEL",ylab="YLABEL")
-        log(tmp)
+        MAraw = DoubleExpSeq.DB_MAPlot(y,m,groups,contrast=contrast, de_tags=rownames,main=MAtitle,xlab="XLABEL",ylab="YLABEL")
         #(this returns 2 lists of points as hidden data (give var for return val) along with the pdf)
+        if options.store_MAraw:
+            log('Dumping MA raw output to file...')
+            f = open(options.store_MAraw_filename, 'w')
+            f.write(str(MAraw))
+            f.close()
+            log('Done.')
         log('Done.')
 
 #######################################################################
