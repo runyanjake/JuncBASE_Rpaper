@@ -138,6 +138,20 @@ def main():
                         DBGLM1 output if --store_dbglm1_output 
                         option is supplied. Default is dbglm1out.txt""",
                         default="dbglm1out.txt")
+    optionParser.add_option("--store_MAplot",
+                        action="store_true", 
+                        dest="store_MAplot", 
+                        default=False,
+                        help="""Creates an M-A plot comparing the original 
+                        and computed distributions in the file specified 
+                        by --store_MAplot_filename.""")
+    optionParser.add_option("--store_MAplot_filename",
+                        dest="store_MAplot_filename",
+                        type="string",
+                        help="""The name of the file to store 
+                        MA plot if --store_MAplot 
+                        option is supplied. Default is maplot.txt""",
+                        default="maplot.txt")
     optionParser.add_option("--store_MAraw",
                         action="store_true", 
                         dest="store_MAraw", 
@@ -295,19 +309,20 @@ def main():
             f.close()
             log('Done.')
 
-        #Generate an M-A Plot
-        log('Creating an M-A plot...')
-        now = datetime.datetime.now()
-        MAtitle = "M-A Plot Sample " + str(contrast[0]) + " vs " + str(contrast[1]) + " on " + str(now.month) + '/' + str(now.day) + ' ' + str(now.hour) + ':' + str(now.minute)
-        MAraw = DoubleExpSeq.DB_MAPlot(y,m,groups,contrast=contrast, de_tags=rownames,main=MAtitle,xlab="XLABEL",ylab="YLABEL")
-        #(this returns 2 lists of points as hidden data (give var for return val) along with the pdf)
-        if options.store_MAraw:
-            log('Dumping MA raw output to file...')
-            f = open(options.store_MAraw_filename, 'w')
-            f.write(str(MAraw))
-            f.close()
+        #Generate an M-A Plot and its raw data if either required
+        if options.store_MAplot:
+            log('Creating an M-A plot...')
+            now = datetime.datetime.now()
+            MAtitle = "M-A Plot Sample " + str(contrast[0]) + " vs " + str(contrast[1]) + " on " + str(now.month) + '/' + str(now.day) + ' ' + str(now.hour) + ':' + str(now.minute)
+            MAraw = DoubleExpSeq.DB_MAPlot(y,m,groups,contrast=contrast, de_tags=rownames,main=MAtitle,xlab="XLABEL",ylab="YLABEL")
+            #(this returns 2 lists of points as hidden data (give var for return val) along with the pdf)
+            if options.store_MAraw:
+                log('Dumping MA raw output to file...')
+                f = open(options.store_MAraw_filename, 'w')
+                f.write(str(MAraw))
+                f.close()
+                log('Done.')
             log('Done.')
-        log('Done.')
 
 #######################################################################
 ################# Auxiliary Function Definitions ######################
