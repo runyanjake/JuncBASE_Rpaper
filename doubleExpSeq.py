@@ -88,6 +88,18 @@ def main():
                          G1_3, G2_1, G2_2, G2_3, G3_1, 
                          G3_2, G3_3, G4_1, G4_2, G4_3" """,
                         default=None)
+    optionParser.add_option("--contrast",
+                        dest="contrast",
+                        type="string",
+                        action='callback',
+                        callback=tokenizeargs,
+                        help="""(REQUIRED) Length 2 list of the indexes
+                         in --col_labels to compare.
+                         Example: --contrast "2, 3" will compare the 
+                         G2 and G3 samples as described in the above 
+                         example by looking at all replicates with a 
+                         G2_ or G3_ prefix in the supplied table. """,
+                        default=None)
     optionParser.add_option("--thresh",
                         dest="thresh",
                         type="float",
