@@ -55,17 +55,6 @@ def tokenizeargs(option, opt, value, parser):
 
 def main():
     #initialize an OptionParser
-    ##**** Options ****##
-    # --initialize     | facilitates R import of DoubleExpSeq package
-    # --debug          | debug statements
-    # --jb_table       | full path + name of juncBASE table
-    # --all_psi_output | full path + name of output file
-    # --mt_correction  | is this necessary for WEB/DEB seq?
-    # --thresh         | see notes for usage
-    # --delta_thresh   | see notes for usage
-    # --sample_set1    | prefix for one set of samples
-    # --sample_set2    | prefix for the other set of samples
-    # NOTE: prefixes come from JBase table entries (last 2n cols)
     optionParser = OptionParser()
     optionParser.add_option("--initialize",
                         action="store_true", 
@@ -177,7 +166,8 @@ def main():
     #greet with version info
     printVersionInfo()
 
-    #### FIRST TIME INSTALLATION ####
+    ##################################################################
+    ######################## FIRST TIME RUN ##########################
     if(options.is_first_run):
         #Import R package
         #trying to mirror from CRAN (Stack overflow and rpy2 documentation point to this way)
@@ -191,16 +181,13 @@ def main():
         log('Done.')
         sys.exit()
 
-    #### NORMAL PROGRAM EXECUTION ####
+    ##################################################################
+    ####################### NORMAL  EXECUTION ########################
     else:
 
         #### CHECK REQUIRED ARGUMENTS ARE SUPPLIED ####
         optionParser.check_required("--jb_table")
         optionParser.check_required("--col_labels")
-        # optionParser.check_required("--thresh")
-        # optionParser.check_required("--delta_thresh")
-        # optionParser.check_required("--sample_set1")
-        # optionParser.check_required("--sample_set2")
 
         #### ENSURE SUPPLIED TABLE EXISTS #### 
         checkImportantFiles(options.jb_table)
@@ -230,14 +217,9 @@ def main():
         #the correct way to use splat operator to map array as function args
         rc = robjects.r['c']
         tmpstr3 = rc(*options.col_labels)
-        print("TMP3: " + str(tmpstr3))
-
-
-
-
+        log("TMP3: " + str(tmpstr3))
 
         #Read JB tables into R-objects compatible with DBGLM1
-        #and can be passed by reference/changed in method
         y = None #R numeric matrix holding incl only.
         m = None #R numeric matrix holding incl + excl
         groups = None #"vector/factor w expr grp/cond for each sample"
@@ -245,7 +227,7 @@ def main():
         contrast = None #"size 2 vector specifying which group levels to compare"
         fdrLevel = None #"thresh for significant event (not same as delta_thresh?)"
         useAllGroups = None #"use contrast's groups to est dispersion?"
-        numRetainedLines = [0] #required for making array. This is clunky python that has to be done this way apparently.
+        numRetainedLines = [0] #required for passing by reference. This is clunky python that has to be done this way apparently.
 
         yvalues = [] #python list to be y
         mvalues = [] #python list to be m
@@ -259,7 +241,7 @@ def main():
         rc = robjects.r['c'] #R vector creation
         yFloatVec = FloatVector(yvalues) #"numeric matrix of inclusion counts"
         mFloatVec = FloatVector(mvalues) #"numeric matrix of total counts (incl+excl)"
-        #matrix cols is arity, number of rows is number of rows kept
+        #matrix cols is arity, number of rows is number of ASEvents kept
         y = rmatrix(yFloatVec, nrow=numRetainedLines[0], ncol=getArity(options.jb_table)-11.0,byrow=True)
         m = rmatrix(mFloatVec, nrow=numRetainedLines[0], ncol=getArity(options.jb_table)-11.0,byrow=True)
 
