@@ -213,7 +213,7 @@ def main():
         if options.shrinkmethod != "WEB" and options.shrinkmethod != "DEB":
             print("\n\n")
             tb = sys.exc_info()[2]
-            raise Exception("\nThe shrinkage method provided wasn't recognized. The only parameters accepted are WEB or DEB (ex: --shrinkmethod WEB).").with_traceback(tb)
+            raise Exception("\nThe shrinkage method provided (\"" + options.shrinkmethod + "\") wasn't recognized. The only parameters accepted are WEB or DEB (caps only, ex: --shrinkmethod WEB).").with_traceback(tb)
             exit(1)
 
         #### CHECK ARITY OF TABLE MATCHES SIZE OF COLNAMES AND THAT EACH LABEL IS FORMATTED CORRECTLY ####
@@ -287,7 +287,7 @@ def main():
             identifier = label[:firstinstance]
             groups_pylist.append(identifier)
         groups = rc(*groups_pylist)
-        shrinkMethod = rc("WEB")
+        shrinkMethod = rc(options.shrinkmethod)
         contrast = rc(3,4) #the INDICES we compare ^
         fdrLevel = 0.05
         useAllGroups = True

@@ -31,7 +31,7 @@ showhelp:
 
 cmdlinetester:
 	@echo Testing command line arguments.
-	python3 doubleExpSeq.py --debug --thresh 10 --delta_thresh 5.0 --jb_table ./ExampleCountTables/MM1s_juncBASE_171117_AS_exclusion_inclusion_counts.txt --col_labels "G1_1,G1_2,G1_3,G2_1,G2_2,G2_3,G3_1,G3_2,G3_3,G4_1,G4_2,G4_3" --shrinkmethod "web"
+	python3 doubleExpSeq.py --debug --thresh 10 --delta_thresh 5.0 --jb_table ./ExampleCountTables/MM1s_juncBASE_171117_AS_exclusion_inclusion_counts.txt --col_labels "G1_1,G1_2,G1_3,G2_1,G2_2,G2_3,G3_1,G3_2,G3_3,G4_1,G4_2,G4_3" --shrinkmethod "WEB"
 
 runpy2:
 	@echo Running doubleExpSeq with Python2.x.
