@@ -95,7 +95,9 @@ def main():
                          Example: --contrast "2, 3" will compare the 
                          G2 and G3 samples as described in the above 
                          example by looking at all replicates with a 
-                         G2_ or G3_ prefix in the supplied table. """,
+                         G2_ or G3_ prefix in the supplied table.
+                         NOTE: behavior undefined if parameters do not
+                         match to a group to contrast. """,
                         default=None)
     optionParser.add_option("--thresh",
                         dest="thresh",
@@ -201,7 +203,6 @@ def main():
     ##################################################################
     ####################### NORMAL  EXECUTION ########################
     else:
-
         #### CHECK REQUIRED ARGUMENTS ARE SUPPLIED ####
         optionParser.check_required("--jb_table")
         optionParser.check_required("--col_labels")
@@ -214,6 +215,15 @@ def main():
             print("\n\n")
             tb = sys.exc_info()[2]
             raise Exception("\nThe shrinkage method provided (\"" + options.shrinkmethod + "\") wasn't recognized. The only parameters accepted are WEB or DEB (caps only, ex: --shrinkmethod WEB).").with_traceback(tb)
+            exit(1)
+        ###TODO: Check that the size of contrast option is just an array of size 2.
+        tmp = 0
+        for item in options.contrast:
+            tmp = tmp + 1
+        if not tmp == 2:
+            print("\n\n")
+            tb = sys.exc_info()[2]
+            raise Exception("\nThe contrast option provided (\"" + str(options.contrast) + "\") wasn't the right size. Only 2 groups can be contrasted at a time.").with_traceback(tb)
             exit(1)
 
         #### CHECK ARITY OF TABLE MATCHES SIZE OF COLNAMES AND THAT EACH LABEL IS FORMATTED CORRECTLY ####
@@ -276,9 +286,6 @@ def main():
         m.rownames = StrVector(rnames)
         y.colnames = StrVector(cnames)
         y.rownames = StrVector(rnames)
-        log("HERE ARE THE LABELLED MATRICEs")
-        log(m)
-        log(y)
 
         #set other params
         groups_pylist = [] #create the group labels.
@@ -288,7 +295,7 @@ def main():
             groups_pylist.append(identifier)
         groups = rc(*groups_pylist)
         shrinkMethod = rc(options.shrinkmethod)
-        contrast = rc(3,4) #the INDICES we compare ^
+        contrast = rc(*options.contrast) #the INDICES we compare
         fdrLevel = 0.05
         useAllGroups = True
 
