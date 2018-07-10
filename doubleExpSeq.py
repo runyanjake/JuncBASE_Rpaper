@@ -153,6 +153,18 @@ def main():
                         by the DoubleExpSeq documentation on the CRAN.
                         Can be either 'WEB' (default) or 'DEB'.""",
                         default="WEB")
+    #NOTE THIS ARG IS NOT FULLY LINKED UP BUT CAN BE SET
+    optionParser.add_option("--useallgroups",
+                        action="store_true", 
+                        dest="useallgroups", 
+                        default=False,
+                        help="""By default, we use only ASEvent 
+                        inclusion/exclusion counts that pass thresh 
+                        tests for ONLY the replicates in groups we're 
+                        contrasting. First run this script with 
+                        '--useallgroups' to instead use all groups' 
+                        counts (will provide more data points at risk 
+                        of modifying distribution). Default=FALSE NOTE: To be implemented fully.""")
     optionParser.add_option("--store_MAplot",
                         action="store_true", 
                         dest="store_MAplot", 
@@ -311,7 +323,9 @@ def main():
         shrinkMethod = rc(options.shrinkmethod)
         contrast = rc(*options.contrast) #the INDICES we compare
         fdrLevel = options.fdrlevel
-        useAllGroups = True
+        useAllGroups = options.useallgroups
+        print(str(options.useallgroups))
+        exit(1)
 
         log('Loading the DoubleExpSeq package into this R environment...')
         DoubleExpSeq = importr('DoubleExpSeq') 
