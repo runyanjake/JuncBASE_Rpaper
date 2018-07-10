@@ -1,6 +1,5 @@
 # @author Jake Runyan
-# @notes
-#   Intended for use with Python 2.7
+# Written for BrooksLab 2018
 
 #**** IMPORTS ****#
 import rpy2
@@ -12,10 +11,9 @@ import sys #sys.exit etc
 import os #os.path.exists
 import csv #for input of jb_table
 import datetime #for naming generated files
-import logging #for debug statements
 
-#messing with R matrices
-from rpy2.robjects.packages import importr #messing with R matrices
+#R imports
+from rpy2.robjects.packages import importr #importing R functions
 from rpy2.robjects import FloatVector #messing with R matrices
 from rpy2.robjects import StrVector #messing with R matrices
 
@@ -23,8 +21,8 @@ from rpy2.robjects import StrVector #messing with R matrices
 ####################### CONSTANT DEFINITIONS ##########################
 #######################################################################
 #OptionParser Defaults
-DEF_THRESH = 10         #min number of lines    
-DEF_DPSI_THRESH = 5.0   #min numerical diff needed to consider change
+DEF_THRESH = 10
+DEF_DPSI_THRESH = 5.0 
 #debug statement toggle
 DEBUG_STMTS = []
 
@@ -52,7 +50,6 @@ def tokenizeargs(option, opt, value, parser):
 #######################################################################
 ###################### Main Loop Definition ###########################
 #######################################################################
-
 def main():
     #initialize an OptionParser
     optionParser = OptionParser()
@@ -139,6 +136,13 @@ def main():
                         DBGLM1 output if --store_dbglm1_output 
                         option is supplied. Default is dbglm1out.txt""",
                         default="dbglm1out.txt")
+    optionParser.add_option("--shrinkmethod",
+                        dest="shrinkmethod",
+                        type="string",
+                        help="""The shrinkage method as described 
+                        by the DoubleExpSeq documentation on the CRAN.
+                        Can be either 'WEB' (default) or 'DEB'.""",
+                        default="WEB")
     optionParser.add_option("--store_MAplot",
                         action="store_true", 
                         dest="store_MAplot", 
@@ -182,7 +186,8 @@ def main():
     ######################## FIRST TIME RUN ##########################
     if(options.is_first_run):
         #Import R package
-        #trying to mirror from CRAN (Stack overflow and rpy2 documentation point to this way)
+        #trying to mirror from CRAN (Stack overflow and rpy2 documentation
+        #                            recommend doing it this way)
         utils = importr('utils')
         log('Setting CRAN as default to install DoubleExpSeq from...')
         utils.chooseCRANmirror(ind=1) #default the CRAN repo
@@ -190,7 +195,7 @@ def main():
         #First time installation of R Package
         log('Performing first time installation of the DoubleExpSeq package...')
         utils.install_packages('DoubleExpSeq') #is this really required?
-        log('Done.')
+        log('Done. Now you can run without the --initialize flag.')
         sys.exit()
 
     ##################################################################
@@ -203,6 +208,13 @@ def main():
 
         #### ENSURE SUPPLIED TABLE EXISTS #### 
         checkImportantFiles(options.jb_table)
+
+        #### CHECK VALIDITY OF PASSED ARGUMENTS BEFORE MUCH COMPUTATION HAPPENS ####
+        if options.shrinkmethod != "WEB" and options.shrinkmethod != "DEB":
+            print("\n\n")
+            tb = sys.exc_info()[2]
+            raise Exception("\nThe shrinkage method provided wasn't recognized. The only parameters accepted are WEB or DEB (ex: --shrinkmethod WEB).").with_traceback(tb)
+            exit(1)
 
         #### CHECK ARITY OF TABLE MATCHES SIZE OF COLNAMES AND THAT EACH LABEL IS FORMATTED CORRECTLY ####
         numcolsgiven = len(options.col_labels)
@@ -293,11 +305,8 @@ def main():
         log('Done.')
 
         #Dump R script output to a text file if it is required.
-        #assumes there's a .txt ending. otherwise filesize must be > 4chars.
         if options.store_dbglm1_output:
             log('Dumping DBGLM1 output to file...')
-            # now = datetime.datetime.now()
-            # datafile = options.jb_table[(options.jb_table.rfind("/")+1):(len(options.jb_table) - 4)] + '_doubleExpSeqOutdata_' + str(now.month) + '-' + str(now.day) + '.' + str(now.hour) + ':' + str(now.minute) + '_' + '.txt'
             f = open(options.dbglm1_output_filename, 'w')
             f.write(str(resultsG1G2WEB))
             f.close()
