@@ -23,6 +23,7 @@ from rpy2.robjects import StrVector #messing with R matrices
 #OptionParser Defaults
 DEF_THRESH = 10
 DEF_DPSI_THRESH = 5.0 
+DEF_FDR = 0.05
 #debug statement toggle
 DEBUG_STMTS = []
 
@@ -118,6 +119,13 @@ def main():
                                 associated events. Default=%s""" 
                                 % DEF_DPSI_THRESH,
                         default=DEF_DPSI_THRESH)
+    optionParser.add_option("--fdrlevel",
+                        dest="fdrlevel",
+                        type="float",
+                        help="""False discovery rate value, directly 
+                        plugged into DBGLM1. Default=%d""" 
+                                % DEF_FDR,
+                        default=DEF_FDR)
     optionParser.add_option("--debug",
                         action="store_true", 
                         dest="debug", 
@@ -216,7 +224,7 @@ def main():
             tb = sys.exc_info()[2]
             raise Exception("\nThe shrinkage method provided (\"" + options.shrinkmethod + "\") wasn't recognized. The only parameters accepted are WEB or DEB (caps only, ex: --shrinkmethod WEB).").with_traceback(tb)
             exit(1)
-        ###TODO: Check that the size of contrast option is just an array of size 2.
+        #----
         tmp = 0
         for item in options.contrast:
             tmp = tmp + 1
@@ -224,6 +232,12 @@ def main():
             print("\n\n")
             tb = sys.exc_info()[2]
             raise Exception("\nThe contrast option provided (\"" + str(options.contrast) + "\") wasn't the right size. Only 2 groups can be contrasted at a time.").with_traceback(tb)
+            exit(1)
+        #----
+        if options.fdrlevel < 0 or options.fdrlevel > 1:
+            print("\n\n")
+            tb = sys.exc_info()[2]
+            raise Exception("\nThe fdrlevel option provided (\"" + str(options.fdrlevel) + "\") cannot be less than 0 (0%) or greater than 1 (100%).").with_traceback(tb)
             exit(1)
 
         #### CHECK ARITY OF TABLE MATCHES SIZE OF COLNAMES AND THAT EACH LABEL IS FORMATTED CORRECTLY ####
@@ -296,7 +310,7 @@ def main():
         groups = rc(*groups_pylist)
         shrinkMethod = rc(options.shrinkmethod)
         contrast = rc(*options.contrast) #the INDICES we compare
-        fdrLevel = 0.05
+        fdrLevel = options.fdrlevel
         useAllGroups = True
 
         log('Loading the DoubleExpSeq package into this R environment...')
