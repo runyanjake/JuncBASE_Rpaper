@@ -52,6 +52,10 @@ def tokenizeargs(option, opt, value, parser):
 ###################### Main Loop Definition ###########################
 #######################################################################
 def main():
+
+    #held for creating files
+    now = datetime.datetime.now()
+
     #initialize an OptionParser
     optionParser = OptionParser()
     optionParser.add_option("--initialize",
@@ -251,6 +255,12 @@ def main():
             tb = sys.exc_info()[2]
             raise Exception("\nThe fdrlevel option provided (\"" + str(options.fdrlevel) + "\") cannot be less than 0 (0%) or greater than 1 (100%).").with_traceback(tb)
             exit(1)
+        #----
+        groups_pylist = [] #create the group labels.
+        for label in options.col_labels:
+            firstinstance = label.find('_')
+            identifier = label[:firstinstance]
+            groups_pylist.append(identifier)
 
         #### CHECK ARITY OF TABLE MATCHES SIZE OF COLNAMES AND THAT EACH LABEL IS FORMATTED CORRECTLY ####
         numcolsgiven = len(options.col_labels)
@@ -275,9 +285,9 @@ def main():
                 exit(1)
 
         #the correct way to use splat operator to map array as function args
-        rc = robjects.r['c']
-        tmpstr3 = rc(*options.col_labels)
-        log("TMP3: " + str(tmpstr3))
+        # rc = robjects.r['c']
+        # col_labels = rc(*options.col_labels)
+        # log("Column Labels: " + str(col_labels))
 
         #Read JB tables into R-objects compatible with DBGLM1
         y = None #R numeric matrix holding incl only.
@@ -293,7 +303,7 @@ def main():
         mvalues = [] #python list to be m
         rnames = [] #python list holding the exon #'s that are kept (holds ints)
         fileLength = getNumLinesNoKey(options.jb_table)
-        parseJBTable(options.jb_table, yvalues, mvalues, options.thresh, (options.delta_thresh / 100.0), getArity(options.jb_table)-11.0, fileLength, numRetainedLines, rnames)
+        parseJBTable(options.jb_table, yvalues, mvalues, options.thresh, (options.delta_thresh / 100.0), getArity(options.jb_table)-11.0, fileLength, numRetainedLines, rnames, options.useallgroups, options.contrast, groups_pylist)
         log("THIS MANY TABLE LINES WERE KEPT: "  + str(numRetainedLines[0]))
 
         #convert python lists to matrices for R 
@@ -314,11 +324,6 @@ def main():
         y.rownames = StrVector(rnames)
 
         #set other params
-        groups_pylist = [] #create the group labels.
-        for label in options.col_labels:
-            firstinstance = label.find('_')
-            identifier = label[:firstinstance]
-            groups_pylist.append(identifier)
         groups = rc(*groups_pylist)
         shrinkMethod = rc(options.shrinkmethod)
         contrast = rc(*options.contrast) #the INDICES we compare
@@ -348,7 +353,6 @@ def main():
         #Generate an M-A Plot and its raw data if either required
         if options.store_MAplot:
             log('Creating an M-A plot...')
-            now = datetime.datetime.now()
             MAtitle = "M-A Plot Sample " + str(contrast[0]) + " vs " + str(contrast[1]) + " on " + str(now.month) + '/' + str(now.day) + ' ' + str(now.hour) + ':' + str(now.minute)
             MAraw = DoubleExpSeq.DB_MAPlot(y,m,groups,contrast=contrast, de_tags=rownames,main=MAtitle,xlab="XLABEL",ylab="YLABEL")
             #(this returns 2 lists of points as hidden data (give var for return val) along with the pdf)
@@ -359,6 +363,16 @@ def main():
                 f.close()
                 log('Done.')
             log('Done.')
+
+        #Create the file that is the main output for the program.
+        log('Generating main output file...')
+        filename = "doubleExpSeqOut_" + str(now.month) + '-' + str(now.day) + '_' + str(now.hour) + '.' + str(now.minute) + ".txt"
+        f = open(filename, 'w')
+
+        f.write("this")
+
+        f.close()
+        log('Done.')
 
 #######################################################################
 ################# Auxiliary Function Definitions ######################
@@ -397,10 +411,11 @@ def checkImportantFiles(jb_table):
             + jb_table + ") does not exist.\n")
         sys.exit(1)
 
+#IF useallgroups=True
 #checks to make sure each ASEvent from each sample was looked at more than thresh times
 #return TRUE if line is ok to use.
 #return FALSE if line does not satisfy thresh
-def checkThresh(line, linenr, thresh):
+def checkThresh_UAG(line, linenr, thresh):
     for itor in range(11, len(line)):
         inclexcl = line[itor].split(';')
         if(float(inclexcl[0]) + float(inclexcl[1]) < thresh):
@@ -409,10 +424,11 @@ def checkThresh(line, linenr, thresh):
         # print("Line " + str(linenr-2) + " passed thresh test. total read count: " + str(float(inclexcl[0]) + float(inclexcl[1])) + " >= " + str(thresh))
     return True
 
+#IF useallgroups=True
 #verify a line to ensure it satisfies the delta-thresh condition
 #return TRUE if line is ok to use.
 #return FALSE if line does not satisfy delta-thresh
-def checkDeltaThresh(line, linenr, numSamples, dthresh):
+def checkDeltaThresh_UAG(line, linenr, numSamples, dthresh):
     first = line[11].split(';') #Default to first in line.
     max_psi = 0.0
     min_psi = 0.0
@@ -436,6 +452,21 @@ def checkDeltaThresh(line, linenr, numSamples, dthresh):
         # print("Line " + str(linenr-2) + " passed delta_thresh test. delta_psi: " + str(max_psi - min_psi) + " >= " + str(dthresh))
         return True
 
+#IF useallgroups=False ("By Group")
+#checks to make sure each ASEvent from each sample (from the compared groups) was looked at more than thresh times
+#return TRUE if line is ok to use.
+#return FALSE if line does not satisfy thresh
+# @param toconsider A list containing the offsets from 11 (aka # of moves from first pair of incl/excl to a pair to consider in test)
+def checkThresh_BG(line, linenr, thresh, toconsider):
+    return False
+
+#IF useallgroups=False ("By Group")
+#verify a line to ensure the compared groups satisfy the delta-thresh condition
+#return TRUE if line is ok to use.
+#return FALSE if line does not satisfy delta-thresh
+def checkDeltaThresh_BG(line, linenr, numSamples, dthresh, toconsider):
+    return False
+
 # Reads a JuncBASE table's values into yvalues and mvalues.
 # @param filepath The filepath to the table.
 # @param yvalues A python list to hold inclusion counts.
@@ -443,7 +474,7 @@ def checkDeltaThresh(line, linenr, numSamples, dthresh):
 # @param dthresh The --delta-thresh value.
 # @param numSamples The number of samples that appear in the table.
 # @param numLines The number of recorded events in the table (number of lines -1)
-def parseJBTable(filepath, yvalues, mvalues, thresh, dthresh, numSamples, numLines, numRetained, rnames):
+def parseJBTable(filepath, yvalues, mvalues, thresh, dthresh, numSamples, numLines, numRetained, rnames, usingallgroups, contrast, labels):
     linenr = 1
 
     numnotkept = 0
@@ -457,8 +488,34 @@ def parseJBTable(filepath, yvalues, mvalues, thresh, dthresh, numSamples, numLin
 
         for line in reader: 
             if(linenr > 1):
-                passthresh = checkThresh(line, linenr, thresh)
-                passdthresh = checkDeltaThresh(line, linenr, numSamples, dthresh)
+                passthresh = None
+                passdthresh = None
+                if usingallgroups:
+                    passthresh = checkThresh_UAG(line, linenr, thresh)
+                    passdthresh = checkDeltaThresh_UAG(line, linenr, numSamples, dthresh)
+                if not usingallgroups:
+                    toconsider = [] #list of what parts of the line to take from jbase line (11 offset)
+
+
+                    label_groups = [] #create the group labels. this will have a problem if 
+                    for label in labels:
+                        identifier = label[1:] #this assumes we have split by underscore leaving a G and a #
+                        label_groups.append(identifier)
+                    print("Groups: " + str(contrast))
+                    print("Labels: " + str(label_groups))
+
+                    itor = 0
+                    for label in label_groups:
+                        if label in contrast:
+                            toconsider.append(itor)
+                        itor = itor + 1
+                    print("TO CONSIDER: " + str(toconsider))
+                    exit(2)
+
+
+                    passthresh = checkThresh_BG(line, linenr, thresh, toconsider)
+                    passdthresh = checkDeltaThresh_BG(line, linenr, numSamples, dthresh, toconsider)
+                    
                 keep = passthresh and passdthresh
                 if(keep):
                     rnames.append("exon_" + str(linenr-1))
