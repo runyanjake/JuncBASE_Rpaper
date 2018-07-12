@@ -230,6 +230,7 @@ def main():
         #### CHECK REQUIRED ARGUMENTS ARE SUPPLIED ####
         optionParser.check_required("--jb_table")
         optionParser.check_required("--col_labels")
+        optionParser.check_required("--contrast")
 
         #### ENSURE SUPPLIED TABLE EXISTS #### 
         checkImportantFiles(options.jb_table)
@@ -336,7 +337,11 @@ def main():
 
         log('Running DBGLM1...')
         # resultsG1G2WEB = DoubleExpSeq.DBGLM1(y,m,groups,shrinkMethod,contrast,fdrLevel,useAllGroups)
-        resultsG1G2WEB = DoubleExpSeq.DBGLM1(y,m,groups)
+        if useAllGroups: 
+            #TODO: MODIFY WITH USEALLGROUPS=TRUE
+            resultsG1G2WEB = DoubleExpSeq.DBGLM1(y,m,groups,use_all_groups=True)
+        if not useAllGroups: 
+            resultsG1G2WEB = DoubleExpSeq.DBGLM1(y,m,groups)
         WEBsig = resultsG1G2WEB.rx2("Sig") #grab just the $Sig matrix
         rrownames = robjects.r['rownames']
         rownames = rrownames(WEBsig) #grab the rownames
@@ -453,19 +458,43 @@ def checkDeltaThresh_UAG(line, linenr, numSamples, dthresh):
         return True
 
 #IF useallgroups=False ("By Group")
-#checks to make sure each ASEvent from each sample (from the compared groups) was looked at more than thresh times
-#return TRUE if line is ok to use.
-#return FALSE if line does not satisfy thresh
+#Difference between this and checkThresh_BG is the addition of the check: "(itor-11) in toconsider and"
 # @param toconsider A list containing the offsets from 11 (aka # of moves from first pair of incl/excl to a pair to consider in test)
 def checkThresh_BG(line, linenr, thresh, toconsider):
-    return False
+    for itor in range(11, len(line)):
+        inclexcl = line[itor].split(';')
+        if((itor-11) in toconsider and float(inclexcl[0]) + float(inclexcl[1]) < thresh):
+            # print("Line " + str(linenr-2) + " failed thresh test. total read count at " + str(itor-11) + ": " + str(float(inclexcl[0]) + float(inclexcl[1])) + " < " + str(thresh))
+            return False
+    # print("Line " + str(linenr-2) + " passed thresh test. total read count: " + str(float(inclexcl[0]) + float(inclexcl[1])) + " >= " + str(thresh))
+    return True
 
 #IF useallgroups=False ("By Group")
-#verify a line to ensure the compared groups satisfy the delta-thresh condition
-#return TRUE if line is ok to use.
-#return FALSE if line does not satisfy delta-thresh
+#Difference between this and checkDeltaThresh_UAG is the addition of line: "if (itor-11) in toconsider:"
 def checkDeltaThresh_BG(line, linenr, numSamples, dthresh, toconsider):
-    return False
+    first = line[11].split(';') #Default to first in line.
+    max_psi = 0.0
+    min_psi = 0.0
+    if(not(float(first[1]) == 0 and float(first[1]) == 0)):
+        max_psi = float(first[1]) / (float(first[0]) + float(first[1]))
+        min_psi = float(first[1]) / (float(first[0]) + float(first[1]))
+
+    if(linenr > 1):
+        for itor in range(12, len(line)): #since we default to first in line, one less per line to check
+            if (itor-11) in toconsider:
+                inclexcl = line[itor].split(';')
+                this_psi = 0.0
+                if(not(float(inclexcl[1]) == 0 and float(inclexcl[1]) == 0)):
+                    this_psi = float(inclexcl[1]) / (float(inclexcl[0]) + float(inclexcl[1]))
+                if(this_psi > max_psi):
+                    max_psi = this_psi
+                if(this_psi < min_psi):
+                    min_psi = this_psi
+        if(max_psi - min_psi < dthresh):
+            # print("Line " + str(linenr-2) + " failed delta_thresh test. delta_psi: " + str(max_psi - min_psi) + " < " + str(dthresh))
+            return False
+        # print("Line " + str(linenr-2) + " passed delta_thresh test. delta_psi: " + str(max_psi - min_psi) + " >= " + str(dthresh))
+        return True
 
 # Reads a JuncBASE table's values into yvalues and mvalues.
 # @param filepath The filepath to the table.
@@ -485,7 +514,13 @@ def parseJBTable(filepath, yvalues, mvalues, thresh, dthresh, numSamples, numLin
     log('Reading from ' + filepath + "...\n")
     with open(filepath, 'rt') as tsvfile:
         reader = csv.reader(tsvfile, delimiter='\t')
-
+        #determine what parts of a row to consider for each line read (this is relevant only if not usingallgroups)
+        label_groups = [] #create the group labels. this will have a problem if 
+        for label in labels:
+            identifier = label[1:] #this assumes we have split by underscore leaving a G and a #
+            label_groups.append(identifier)
+        log("Groups: " + str(contrast))
+        log("Labels: " + str(label_groups))
         for line in reader: 
             if(linenr > 1):
                 passthresh = None
@@ -495,27 +530,14 @@ def parseJBTable(filepath, yvalues, mvalues, thresh, dthresh, numSamples, numLin
                     passdthresh = checkDeltaThresh_UAG(line, linenr, numSamples, dthresh)
                 if not usingallgroups:
                     toconsider = [] #list of what parts of the line to take from jbase line (11 offset)
-
-
-                    label_groups = [] #create the group labels. this will have a problem if 
-                    for label in labels:
-                        identifier = label[1:] #this assumes we have split by underscore leaving a G and a #
-                        label_groups.append(identifier)
-                    print("Groups: " + str(contrast))
-                    print("Labels: " + str(label_groups))
-
                     itor = 0
                     for label in label_groups:
                         if label in contrast:
                             toconsider.append(itor)
                         itor = itor + 1
-                    print("TO CONSIDER: " + str(toconsider))
-                    exit(2)
-
-
                     passthresh = checkThresh_BG(line, linenr, thresh, toconsider)
                     passdthresh = checkDeltaThresh_BG(line, linenr, numSamples, dthresh, toconsider)
-                    
+
                 keep = passthresh and passdthresh
                 if(keep):
                     rnames.append("exon_" + str(linenr-1))
