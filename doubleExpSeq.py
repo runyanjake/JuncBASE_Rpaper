@@ -324,8 +324,6 @@ def main():
         contrast = rc(*options.contrast) #the INDICES we compare
         fdrLevel = options.fdrlevel
         useAllGroups = options.useallgroups
-        print(str(options.useallgroups))
-        exit(1)
 
         log('Loading the DoubleExpSeq package into this R environment...')
         DoubleExpSeq = importr('DoubleExpSeq') 
