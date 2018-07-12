@@ -371,7 +371,12 @@ def main():
 
         #Create the file that is the main output for the program.
         log('Generating main output file...')
-        filename = "doubleExpSeqOut_" + str(now.month) + '-' + str(now.day) + '_' + str(now.hour) + '.' + str(now.minute) + ".txt"
+        filename = "doubleExpSeqOut_"
+        if options.useallgroups:
+            filename = filename + "UAG_"
+        if not options.useallgroups:
+            filename = filename + "BG_"
+        filename = filename + str(now.month) + '-' + str(now.day) + '_' + str(now.hour) + '.' + str(now.minute) + ".txt"
         f = open(filename, 'w')
 
         f.write("this")
