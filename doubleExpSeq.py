@@ -11,11 +11,13 @@ import sys #sys.exit etc
 import os #os.path.exists
 import csv #for input of jb_table
 import datetime #for naming generated files
+import numpy as numpy
 
 #R imports
 from rpy2.robjects.packages import importr #importing R functions
 from rpy2.robjects import FloatVector #messing with R matrices
 from rpy2.robjects import StrVector #messing with R matrices
+from rpy2.robjects import BoolVector #reading R matrix (setting columns to read from)
 
 #######################################################################
 ####################### CONSTANT DEFINITIONS ##########################
@@ -336,13 +338,13 @@ def main():
         log('Done.')
 
         log('Running DBGLM1...')
-        # resultsG1G2WEB = DoubleExpSeq.DBGLM1(y,m,groups,shrinkMethod,contrast,fdrLevel,useAllGroups)
+        # resultsG1G2 = DoubleExpSeq.DBGLM1(y,m,groups,shrinkMethod,contrast,fdrLevel,useAllGroups)
         if useAllGroups: 
             #TODO: MODIFY WITH USEALLGROUPS=TRUE
-            resultsG1G2WEB = DoubleExpSeq.DBGLM1(y,m,groups,use_all_groups=True)
+            resultsG1G2 = DoubleExpSeq.DBGLM1(y,m,groups,use_all_groups=True)
         if not useAllGroups: 
-            resultsG1G2WEB = DoubleExpSeq.DBGLM1(y,m,groups)
-        WEBsig = resultsG1G2WEB.rx2("Sig") #grab just the $Sig matrix
+            resultsG1G2 = DoubleExpSeq.DBGLM1(y,m,groups)
+        WEBsig = resultsG1G2.rx2("Sig") #grab just the $Sig matrix
         rrownames = robjects.r['rownames']
         rownames = rrownames(WEBsig) #grab the rownames
         log('Done.')
@@ -351,7 +353,7 @@ def main():
         if options.store_dbglm1_output:
             log('Dumping DBGLM1 output to file...')
             f = open(options.dbglm1_output_filename, 'w')
-            f.write(str(resultsG1G2WEB))
+            f.write(str(resultsG1G2))
             f.close()
             log('Done.')
 
@@ -378,6 +380,14 @@ def main():
             filename = filename + "BG_"
         filename = filename + str(now.month) + '-' + str(now.day) + '_' + str(now.hour) + '.' + str(now.minute) + ".txt"
         f = open(filename, 'w')
+
+        #itorate through dbglm1 output as the main control:
+        routput = resultsG1G2.rx2("All") #sig is returning the column labels apparently and all returns everything ????
+                        #I WANT TO READ FROM SIG NOT ALL (THIS IS JUST A TEST)
+        # for itor in range(0,10):
+        #     print(routput[itor])
+        rows = numpy.asarray(routput)
+        print(rows)
 
         f.write("this")
 
