@@ -381,16 +381,44 @@ def main():
         filename = filename + str(now.month) + '-' + str(now.day) + '_' + str(now.hour) + '.' + str(now.minute) + ".txt"
         f = open(filename, 'w')
 
+        #Gets the indexes of the members of each group (used below)
+        label_groups = [] #create the group labels. this will have a problem if 
+        for label in groups_pylist:
+            identifier = label[1:] #this assumes we have split by underscore leaving a G and a #
+            label_groups.append(identifier)
+        group1consider = [] #list of what parts of the line to take from jbase line (11 offset)
+        group2consider = [] #list of what parts of the line to take from jbase line (11 offset)
+        itor = 0
+        for label in label_groups:
+            if label == contrast[0]:
+                group1consider.append(itor)
+            elif label == contrast[1]:
+                group2consider.append(itor)
+            itor = itor + 1
+
         #itorate through dbglm1 output as the main control:
-        routput = resultsG1G2.rx2("All") #sig is returning the column labels apparently and all returns everything ????
-                        #I WANT TO READ FROM SIG NOT ALL (THIS IS JUST A TEST)
-        # for itor in range(0,10):
-        #     print(routput[itor])
-        rows = numpy.asarray(routput)
-        print(rows)
+        routput = resultsG1G2.rx2("All") #All holds data, #sig held the column names for earlier use.
+        routput_rows = numpy.asarray(routput) #breaks matrix into list of 9tuples
+        #open jb table
+        jbtablefile = open(options.jb_table, 'rt')
+        jbtable = csv.reader(jbtablefile, delimiter='\t') #$#$!@!@#!
 
-        f.write("this")
+        #write the header
+        # isPval>0.05  ref#inInputTable  TAGS_OF_COLS_FROM_INPUT_FILE  POSSIBLY_SPLICE_IN/OUT_COUNTS_FROM_INPUT_FILE  median_psi_group1  median_psi_group2  delta_psi\traw_pval  corrected_pval
+        f.write("# isPval>0.05\tref#inInputTable\tTAGS_OF_COLS_FROM_INPUT_FILE\tPOSSIBLY_SPLICE_IN/OUT_COUNTS\tmedian_psi_group1\tmedian_psi_group2\tdelta_psi\traw_pval\tcorrected_pval\n")
+        
+        ritor = 0
+        for row in routput_rows: #ritor: 1-n jbitor: 0-(n-1)
+            group1psitotal = []
+            group2psitotal = []
+            jbitor = 0
+            while not jbitor == int(rnames[ritor][5:])-1:
+                jbitor = jbitor + 1
+            print("R output row " + str(ritor) + " matches with JB table row " + str(jbitor))
+            f.write("N\t" + str(rnames[ritor][5:]) + "\tTAGS_OF_COLS_FROM_INPUT_FILE\tPOSSIBLY_SPLICE_IN/OUT_COUNTS\t" + "\n")
+            ritor = ritor + 1
 
+        jbtablefile.close()
         f.close()
         log('Done.')
 
