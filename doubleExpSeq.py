@@ -402,21 +402,33 @@ def main():
         #open jb table
         jbtablefile = open(options.jb_table, 'rt')
         jbtable = csv.reader(jbtablefile, delimiter='\t') #$#$!@!@#!
+        jbline = next(jbtable) #Read in the header line (which will never be used). Works with the 0 indexing.
 
         #write the header
         # isPval>0.05  ref#inInputTable  TAGS_OF_COLS_FROM_INPUT_FILE  POSSIBLY_SPLICE_IN/OUT_COUNTS_FROM_INPUT_FILE  median_psi_group1  median_psi_group2  delta_psi\traw_pval  corrected_pval
         f.write("# isPval>0.05\tref#inInputTable\tTAGS_OF_COLS_FROM_INPUT_FILE\tPOSSIBLY_SPLICE_IN/OUT_COUNTS\tmedian_psi_group1\tmedian_psi_group2\tdelta_psi\traw_pval\tcorrected_pval\n")
         
         ritor = 0
+        jbitor = 0
         for row in routput_rows: #ritor: 1-n jbitor: 0-(n-1)
             group1psitotal = []
             group2psitotal = []
-            jbitor = 0
             print("R file row " + str(ritor) + " refers to ASEvent number " + str(int(rnames[ritor][5:])) + ", looking for the matching jb file line.")
             while not jbitor == int(rnames[ritor][5:]):
+                jbline = next(jbtable)
                 jbitor = jbitor + 1
             print("R output row " + str(ritor) + " matches with the jb file line number " + str(jbitor) + " with text " + str(jbline))
             f.write("N\t" + str(rnames[ritor][5:]) + "\tTAGS_OF_COLS_FROM_INPUT_FILE\tPOSSIBLY_SPLICE_IN/OUT_COUNTS\t" + "\n")
+            
+            
+            
+            
+            
+            #FIGURE OUT WHAT WE WANT FROM THE ORIG FILE:
+
+
+
+
             ritor = ritor + 1
 
         jbtablefile.close()
