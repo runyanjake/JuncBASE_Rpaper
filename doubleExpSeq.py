@@ -412,9 +412,10 @@ def main():
             group1psitotal = []
             group2psitotal = []
             jbitor = 0
-            while not jbitor == int(rnames[ritor][5:])-1:
+            print("R file row " + str(ritor) + " refers to ASEvent number " + str(int(rnames[ritor][5:])) + ", looking for the matching jb file line.")
+            while not jbitor == int(rnames[ritor][5:]):
                 jbitor = jbitor + 1
-            print("R output row " + str(ritor) + " matches with JB table row " + str(jbitor))
+            print("R output row " + str(ritor) + " matches with the jb file line number " + str(jbitor) + " with text " + str(jbline))
             f.write("N\t" + str(rnames[ritor][5:]) + "\tTAGS_OF_COLS_FROM_INPUT_FILE\tPOSSIBLY_SPLICE_IN/OUT_COUNTS\t" + "\n")
             ritor = ritor + 1
 
