@@ -405,8 +405,8 @@ def main():
         jbline = next(jbtable) #Read in the header line (which will never be used). Works with the 0 indexing.
 
         #write the header
-        # isPval>0.05  line#inInputTable  TAGS_OF_COLS_FROM_INPUT_FILE  POSSIBLY_SPLICE_IN/OUT_COUNTS_FROM_INPUT_FILE  median_psi_group1  median_psi_group2  delta_psi\traw_pval  corrected_pval
-        f.write("# isPval>0.05\tline#inInputTable\tTAGS_OF_COLS_FROM_INPUT_FILE\tPOSSIBLY_SPLICE_IN/OUT_COUNTS\tmedian_psi_group1\tmedian_psi_group2\tdelta_psi\traw_pval\tcorrected_pval\n")
+        # isPval>0.05  line#inInputTable ANYTHING ELSE FROM ORIG FILE?  median_psi_group1  median_psi_group2  delta_psi\traw_pval  corrected_pval
+        f.write("# isPval>0.05\tline#inInputTable\tas_event_type\tgene_name\tANYTHING ELSE FROM ORIG FILE?\tmedian_psi_group1\tmedian_psi_group2\tdelta_psi\traw_pval\tcorrected_pval\n")
         
         ritor = 0
         jbitor = 0
@@ -433,9 +433,8 @@ def main():
                     if not inclexcl[0] == 0: #avoid possible division by 0 (any NaN -> 0.0)
                         psi = float(inclexcl[0]) / (float(inclexcl[0]) + float(inclexcl[1]))
                     group2psilist.append(psi)
-            print("Group 1 PSIs: " + str(group1psilist))
-            print("Group 2 PSIs: " + str(group2psilist))
-    
+            log("Group 1 PSIs: " + str(group1psilist))
+            log("Group 2 PSIs: " + str(group2psilist))
             while len(group1psilist) > 2: 
                 valuelowest = group1psilist[0]
                 indexlowest = 0
@@ -485,14 +484,17 @@ def main():
                 group2medianpsi = group2psilist[0]
             else:
                 group2medianpsi = (group2psilist[0] + group2psilist[1]) / 2.0
-            print("Group 1 median PSI: " + str(group1medianpsi))
-            print("Group 2 median PSI: " + str(group2medianpsi))
+            log("Group 1 median PSI: " + str(group1medianpsi))
+            log("Group 2 median PSI: " + str(group2medianpsi))
             
             f.write("N\t"   #isPval>0.05
                 + str(int(rnames[ritor][5:]) + 1) + "\t" #ref number to lookup in jb table (the line number not ASEvent #)
                 + str(jbline[1]) + "\t" #as_event_type
                 + str(jbline[2]) + "\t" #gene_name
                 + "ANYTHING ELSE FROM ORIG FILE?"  + "\t"
+                + str(round(group1medianpsi, 4)) + "\t"
+                + str(round(group2medianpsi, 4)) + "\t"
+                + str(round(abs(group1medianpsi - group2medianpsi), 4)) + "\t"
                 + "\t" + "\n")
 
             ritor = ritor + 1
