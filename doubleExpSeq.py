@@ -373,134 +373,7 @@ def main():
 
         #Create the file that is the main output for the program.
         log('Generating main output file...')
-        filename = "doubleExpSeqOut_"
-        if options.useallgroups:
-            filename = filename + "UAG_"
-        if not options.useallgroups:
-            filename = filename + "BG_"
-        filename = filename + str(now.month) + '-' + str(now.day) + '_' + str(now.hour) + '.' + str(now.minute) + ".txt"
-        f = open(filename, 'w')
-
-        #Gets the indexes of the members of each group (used below)
-        label_groups = [] #create the group labels. this will have a problem if 
-        for label in groups_pylist:
-            identifier = label[1:] #this assumes we have split by underscore leaving a G and a #
-            label_groups.append(identifier)
-        group1consider = [] #list of what parts of the line to take from jbase line (11 offset)
-        group2consider = [] #list of what parts of the line to take from jbase line (11 offset)
-        itor = 0
-        for label in label_groups:
-            if label == contrast[0]:
-                group1consider.append(itor)
-            elif label == contrast[1]:
-                group2consider.append(itor)
-            itor = itor + 1
-
-        #itorate through dbglm1 output as the main control:
-        routput = resultsG1G2.rx2("All") #All holds data, #sig held the column names for earlier use.
-        routput_rows = numpy.asarray(routput) #breaks matrix into list of 9tuples
-        #open jb table
-        jbtablefile = open(options.jb_table, 'rt')
-        jbtable = csv.reader(jbtablefile, delimiter='\t') #$#$!@!@#!
-        jbline = next(jbtable) #Read in the header line (which will never be used). Works with the 0 indexing.
-
-        #write the header
-        # isPval>0.05  line#inInputTable ANYTHING ELSE FROM ORIG FILE?  median_psi_group1  median_psi_group2  delta_psi\traw_pval  corrected_pval
-        f.write("# isPval>0.05\tline#inInputTable\tas_event_type\tgene_name\tANYTHING ELSE FROM ORIG FILE?\tmedian_psi_group1\tmedian_psi_group2\tdelta_psi\traw_pval\tcorrected_pval\n")
-        
-        ritor = 0
-        jbitor = 0
-        for row in routput_rows: #ritor: 1-n jbitor: 0-(n-1)
-            group1psilist = []
-            group2psilist = []
-            group1contrib = 0
-            group2contrib = 0
-            while not jbitor == int(rnames[ritor][5:]):
-                jbline = next(jbtable)
-                jbitor = jbitor + 1
-
-            #compute median psi
-            for itor in range(11, len(jbline)):
-                if itor-11 in group1consider:
-                    inclexcl = jbline[itor].split(';')
-                    psi = 0.0
-                    if not inclexcl[0] == 0: #avoid possible division by 0 (any NaN -> 0.0)
-                        psi = float(inclexcl[0]) / (float(inclexcl[0]) + float(inclexcl[1]))
-                    group1psilist.append(psi)
-                elif itor-11 in group2consider:
-                    inclexcl = jbline[itor].split(';')
-                    psi = 0.0
-                    if not inclexcl[0] == 0: #avoid possible division by 0 (any NaN -> 0.0)
-                        psi = float(inclexcl[0]) / (float(inclexcl[0]) + float(inclexcl[1]))
-                    group2psilist.append(psi)
-            log("Group 1 PSIs: " + str(group1psilist))
-            log("Group 2 PSIs: " + str(group2psilist))
-            while len(group1psilist) > 2: 
-                valuelowest = group1psilist[0]
-                indexlowest = 0
-                index = 0
-                for psi in group1psilist:
-                    if psi < valuelowest:
-                        valuelowest = psi
-                        indexlowest = index
-                    index = index + 1
-                del group1psilist[indexlowest] #delete lowest psi 
-                valuehighest = group1psilist[0] 
-                indexhighest = 0
-                index = 0
-                for psi in group1psilist:
-                    if psi > valuehighest:
-                        valuehighest = psi
-                        indexhighest = index
-                    index = index + 1
-                del group1psilist[indexhighest] #delete highest psi
-            while len(group2psilist) > 2: 
-                valuelowest = group2psilist[0]
-                indexlowest = 0
-                index = 0
-                for psi in group2psilist:
-                    if psi < valuelowest:
-                        valuelowest = psi
-                        indexlowest = index
-                    index = index + 1
-                del group2psilist[indexlowest] #delete lowest psi 
-                valuehighest = group2psilist[0] 
-                indexhighest = 0
-                index = 0
-                for psi in group2psilist:
-                    if psi > valuehighest:
-                        valuehighest = psi
-                        indexhighest = index
-                    index = index + 1
-                del group2psilist[indexhighest] #delete highest psi
-
-            group1medianpsi = -1.0
-            group2medianpsi = -1.0
-            if len(group1psilist) == 1:
-                group1medianpsi = group1psilist[0]
-            else:
-                group1medianpsi = (group1psilist[0] + group1psilist[1]) / 2.0
-            if len(group2psilist) == 1:
-                group2medianpsi = group2psilist[0]
-            else:
-                group2medianpsi = (group2psilist[0] + group2psilist[1]) / 2.0
-            log("Group 1 median PSI: " + str(group1medianpsi))
-            log("Group 2 median PSI: " + str(group2medianpsi))
-            
-            f.write("N\t"   #isPval>0.05
-                + str(int(rnames[ritor][5:]) + 1) + "\t" #ref number to lookup in jb table (the line number not ASEvent #)
-                + str(jbline[1]) + "\t" #as_event_type
-                + str(jbline[2]) + "\t" #gene_name
-                + "ANYTHING ELSE FROM ORIG FILE?"  + "\t"
-                + str(round(group1medianpsi, 4)) + "\t"
-                + str(round(group2medianpsi, 4)) + "\t"
-                + str(round(abs(group1medianpsi - group2medianpsi), 4)) + "\t"
-                + "\t" + "\n")
-
-            ritor = ritor + 1
-
-        jbtablefile.close()
-        f.close()
+        makeoutputfile(options.useallgroups, now, groups_pylist, contrast, resultsG1G2, options.jb_table, rnames)
         log('Done.')
 
 #######################################################################
@@ -685,6 +558,136 @@ def parseJBTable(filepath, yvalues, mvalues, thresh, dthresh, numSamples, numLin
         log("Number of lines failing thresh test: " + str(numfailthresh))
         log("Number of lines failing delta_thresh test: " + str(numfaildthresh))
         log("Number of lines failing both tests: " + str(numfailboth))
+
+def makeoutputfile(uallg, now, groups_pylist, contrast, resultsG1G2, jb_table, rnames):
+    filename = "doubleExpSeqOut_"
+    if uallg:
+        filename = filename + "UAG_"
+    if not uallg:
+        filename = filename + "BG_"
+    filename = filename + str(now.month) + '-' + str(now.day) + '_' + str(now.hour) + '.' + str(now.minute) + ".txt"
+    f = open(filename, 'w')
+
+    #Gets the indexes of the members of each group (used below)
+    label_groups = [] #create the group labels. this will have a problem if 
+    for label in groups_pylist:
+        identifier = label[1:] #this assumes we have split by underscore leaving a G and a #
+        label_groups.append(identifier)
+    group1consider = [] #list of what parts of the line to take from jbase line (11 offset)
+    group2consider = [] #list of what parts of the line to take from jbase line (11 offset)
+    itor = 0
+    for label in label_groups:
+        if label == contrast[0]:
+            group1consider.append(itor)
+        elif label == contrast[1]:
+            group2consider.append(itor)
+        itor = itor + 1
+
+    #itorate through dbglm1 output as the main control:
+    routput = resultsG1G2.rx2("All") #All holds data, #sig held the column names for earlier use.
+    routput_rows = numpy.asarray(routput) #breaks matrix into list of 9tuples
+    #open jb table
+    jbtablefile = open(jb_table, 'rt')
+    jbtable = csv.reader(jbtablefile, delimiter='\t') #$#$!@!@#!
+    jbline = next(jbtable) #Read in the header line (which will never be used). Works with the 0 indexing.
+
+    #write the header
+    # isPval>0.05  line#inInputTable ANYTHING ELSE FROM ORIG FILE?  median_psi_group1  median_psi_group2  delta_psi\traw_pval  corrected_pval
+    f.write("# isPval>0.05\tline#inInputTable\tas_event_type\tgene_name\tANYTHING ELSE FROM ORIG FILE?\tmedian_psi_group1\tmedian_psi_group2\tdelta_psi\traw_pval\tcorrected_pval\n")
+    
+    ritor = 0
+    jbitor = 0
+    for row in routput_rows: #ritor: 1-n jbitor: 0-(n-1)
+        group1psilist = []
+        group2psilist = []
+        group1contrib = 0
+        group2contrib = 0
+        while not jbitor == int(rnames[ritor][5:]):
+            jbline = next(jbtable)
+            jbitor = jbitor + 1
+
+        #compute median psi
+        for itor in range(11, len(jbline)):
+            if itor-11 in group1consider:
+                inclexcl = jbline[itor].split(';')
+                psi = 0.0
+                if not inclexcl[0] == 0: #avoid possible division by 0 (any NaN -> 0.0)
+                    psi = float(inclexcl[0]) / (float(inclexcl[0]) + float(inclexcl[1]))
+                group1psilist.append(psi)
+            elif itor-11 in group2consider:
+                inclexcl = jbline[itor].split(';')
+                psi = 0.0
+                if not inclexcl[0] == 0: #avoid possible division by 0 (any NaN -> 0.0)
+                    psi = float(inclexcl[0]) / (float(inclexcl[0]) + float(inclexcl[1]))
+                group2psilist.append(psi)
+        log("Group 1 PSIs: " + str(group1psilist))
+        log("Group 2 PSIs: " + str(group2psilist))
+        while len(group1psilist) > 2: 
+            valuelowest = group1psilist[0]
+            indexlowest = 0
+            index = 0
+            for psi in group1psilist:
+                if psi < valuelowest:
+                    valuelowest = psi
+                    indexlowest = index
+                index = index + 1
+            del group1psilist[indexlowest] #delete lowest psi 
+            valuehighest = group1psilist[0] 
+            indexhighest = 0
+            index = 0
+            for psi in group1psilist:
+                if psi > valuehighest:
+                    valuehighest = psi
+                    indexhighest = index
+                index = index + 1
+            del group1psilist[indexhighest] #delete highest psi
+        while len(group2psilist) > 2: 
+            valuelowest = group2psilist[0]
+            indexlowest = 0
+            index = 0
+            for psi in group2psilist:
+                if psi < valuelowest:
+                    valuelowest = psi
+                    indexlowest = index
+                index = index + 1
+            del group2psilist[indexlowest] #delete lowest psi 
+            valuehighest = group2psilist[0] 
+            indexhighest = 0
+            index = 0
+            for psi in group2psilist:
+                if psi > valuehighest:
+                    valuehighest = psi
+                    indexhighest = index
+                index = index + 1
+            del group2psilist[indexhighest] #delete highest psi
+
+        group1medianpsi = -1.0
+        group2medianpsi = -1.0
+        if len(group1psilist) == 1:
+            group1medianpsi = group1psilist[0]
+        else:
+            group1medianpsi = (group1psilist[0] + group1psilist[1]) / 2.0
+        if len(group2psilist) == 1:
+            group2medianpsi = group2psilist[0]
+        else:
+            group2medianpsi = (group2psilist[0] + group2psilist[1]) / 2.0
+        log("Group 1 median PSI: " + str(group1medianpsi))
+        log("Group 2 median PSI: " + str(group2medianpsi))
+        
+        f.write("N\t"   #isPval>0.05
+            + str(int(rnames[ritor][5:]) + 1) + "\t" #ref number to lookup in jb table (the line number not ASEvent #)
+            + str(jbline[1]) + "\t" #as_event_type
+            + str(jbline[2]) + "\t" #gene_name
+            + "ANYTHING ELSE FROM ORIG FILE?"  + "\t"
+            + str(round(group1medianpsi, 4)) + "\t"
+            + str(round(group2medianpsi, 4)) + "\t"
+            + str(round(abs(group1medianpsi - group2medianpsi), 4)) + "\t"
+            + "\t" + "\n")
+
+        ritor = ritor + 1
+
+    jbtablefile.close()
+    f.close()
 
 def log(s):
     if DEBUG_STMTS is None or DEBUG_STMTS[0]:
