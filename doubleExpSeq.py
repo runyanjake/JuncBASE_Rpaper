@@ -593,7 +593,7 @@ def makeoutputfile(uallg, now, groups_pylist, contrast, resultsG1G2, jb_table, r
 
     #write the header
     # isPval>0.05  line#inInputTable ANYTHING ELSE FROM ORIG FILE?  median_psi_group1  median_psi_group2  delta_psi\traw_pval  corrected_pval
-    f.write("# isPval>0.05\tline#inInputTable\tas_event_type\tgene_name\tANYTHING ELSE FROM ORIG FILE?\tmedian_psi_group1\tmedian_psi_group2\tdelta_psi\traw_pval\tcorrected_pval\n")
+    f.write("# is_raw_pval>0.05\tline#inInputTable\tas_event_type\tgene_name\tANYTHING ELSE FROM ORIG FILE?\tmedian_psi_group1\tmedian_psi_group2\tdelta_psi\traw_pval\tcorrected_pval\n")
     
     ritor = 0
     jbitor = 0
@@ -674,14 +674,19 @@ def makeoutputfile(uallg, now, groups_pylist, contrast, resultsG1G2, jb_table, r
         log("Group 1 median PSI: " + str(group1medianpsi))
         log("Group 2 median PSI: " + str(group2medianpsi))
         
-        f.write("N\t"   #isPval>0.05
-            + str(int(rnames[ritor][5:]) + 1) + "\t" #ref number to lookup in jb table (the line number not ASEvent #)
+        if float(row[2]) > 0.05:
+            f.write("Y\t")   #isPval>0.05
+        else:
+            f.write("N\t")   #isPval>0.05
+        f.write(str(int(rnames[ritor][5:]) + 1) + "\t" #ref number to lookup in jb table (the line number not ASEvent #)
             + str(jbline[1]) + "\t" #as_event_type
             + str(jbline[2]) + "\t" #gene_name
-            + "ANYTHING ELSE FROM ORIG FILE?"  + "\t"
-            + str(round(group1medianpsi, 4)) + "\t"
-            + str(round(group2medianpsi, 4)) + "\t"
-            + str(round(abs(group1medianpsi - group2medianpsi), 4)) + "\t"
+            + "ANYTHING ELSE FROM ORIG FILE?"  + "\t" 
+            + str(round(group1medianpsi, 4)) + "\t" #Group 1 median PSI
+            + str(round(group2medianpsi, 4)) + "\t" #GRoup 2 median PSI
+            + str(round(abs(group1medianpsi - group2medianpsi), 4)) + "\t" #Delta PSI
+            + str(row[2]) + "\t" #pVal (from R)
+            + str(row[3]) + "\t" #adj.pVal (from R)
             + "\t" + "\n")
 
         ritor = ritor + 1
