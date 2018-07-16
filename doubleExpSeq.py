@@ -405,29 +405,95 @@ def main():
         jbline = next(jbtable) #Read in the header line (which will never be used). Works with the 0 indexing.
 
         #write the header
-        # isPval>0.05  ref#inInputTable  TAGS_OF_COLS_FROM_INPUT_FILE  POSSIBLY_SPLICE_IN/OUT_COUNTS_FROM_INPUT_FILE  median_psi_group1  median_psi_group2  delta_psi\traw_pval  corrected_pval
-        f.write("# isPval>0.05\tref#inInputTable\tTAGS_OF_COLS_FROM_INPUT_FILE\tPOSSIBLY_SPLICE_IN/OUT_COUNTS\tmedian_psi_group1\tmedian_psi_group2\tdelta_psi\traw_pval\tcorrected_pval\n")
+        # isPval>0.05  line#inInputTable  TAGS_OF_COLS_FROM_INPUT_FILE  POSSIBLY_SPLICE_IN/OUT_COUNTS_FROM_INPUT_FILE  median_psi_group1  median_psi_group2  delta_psi\traw_pval  corrected_pval
+        f.write("# isPval>0.05\tline#inInputTable\tTAGS_OF_COLS_FROM_INPUT_FILE\tPOSSIBLY_SPLICE_IN/OUT_COUNTS\tmedian_psi_group1\tmedian_psi_group2\tdelta_psi\traw_pval\tcorrected_pval\n")
         
         ritor = 0
         jbitor = 0
         for row in routput_rows: #ritor: 1-n jbitor: 0-(n-1)
-            group1psitotal = []
-            group2psitotal = []
-            print("R file row " + str(ritor) + " refers to ASEvent number " + str(int(rnames[ritor][5:])) + ", looking for the matching jb file line.")
+            group1psilist = []
+            group2psilist = []
+            group1contrib = 0
+            group2contrib = 0
             while not jbitor == int(rnames[ritor][5:]):
                 jbline = next(jbtable)
                 jbitor = jbitor + 1
-            print("R output row " + str(ritor) + " matches with the jb file line number " + str(jbitor) + " with text " + str(jbline))
-            f.write("N\t" + str(rnames[ritor][5:]) + "\tTAGS_OF_COLS_FROM_INPUT_FILE\tPOSSIBLY_SPLICE_IN/OUT_COUNTS\t" + "\n")
-            
-            
-            
-            
-            
-            #FIGURE OUT WHAT WE WANT FROM THE ORIG FILE:
 
+            #compute median psi
+            for itor in range(11, len(jbline)):
+                if itor-11 in group1consider:
+                    inclexcl = jbline[itor].split(';')
+                    psi = 0.0
+                    if not inclexcl[0] == 0: #avoid possible division by 0 (any NaN -> 0.0)
+                        psi = float(inclexcl[0]) / (float(inclexcl[0]) + float(inclexcl[1]))
+                    group1psilist.append(psi)
+                elif itor-11 in group2consider:
+                    inclexcl = jbline[itor].split(';')
+                    psi = 0.0
+                    if not inclexcl[0] == 0: #avoid possible division by 0 (any NaN -> 0.0)
+                        psi = float(inclexcl[0]) / (float(inclexcl[0]) + float(inclexcl[1]))
+                    group2psilist.append(psi)
+            print("Group 1 PSIs: " + str(group1psilist))
+            print("Group 2 PSIs: " + str(group2psilist))
+    
+            while len(group1psilist) > 2: 
+                valuelowest = group1psilist[0]
+                indexlowest = 0
+                index = 0
+                for psi in group1psilist:
+                    if psi < valuelowest:
+                        valuelowest = psi
+                        indexlowest = index
+                    index = index + 1
+                del group1psilist[indexlowest] #delete lowest psi 
+                valuehighest = group1psilist[0] 
+                indexhighest = 0
+                index = 0
+                for psi in group1psilist:
+                    if psi > valuehighest:
+                        valuehighest = psi
+                        indexhighest = index
+                    index = index + 1
+                del group1psilist[indexhighest] #delete highest psi
+            while len(group2psilist) > 2: 
+                valuelowest = group2psilist[0]
+                indexlowest = 0
+                index = 0
+                for psi in group2psilist:
+                    if psi < valuelowest:
+                        valuelowest = psi
+                        indexlowest = index
+                    index = index + 1
+                del group2psilist[indexlowest] #delete lowest psi 
+                valuehighest = group2psilist[0] 
+                indexhighest = 0
+                index = 0
+                for psi in group2psilist:
+                    if psi > valuehighest:
+                        valuehighest = psi
+                        indexhighest = index
+                    index = index + 1
+                del group2psilist[indexhighest] #delete highest psi
 
-
+            group1medianpsi = -1.0
+            group2medianpsi = -1.0
+            if len(group1psilist) == 1:
+                group1medianpsi = group1psilist[0]
+            else:
+                group1medianpsi = (group1psilist[0] + group1psilist[1]) / 2.0
+            if len(group2psilist) == 1:
+                group2medianpsi = group2psilist[0]
+            else:
+                group2medianpsi = (group2psilist[0] + group2psilist[1]) / 2.0
+            print("Group 1 median PSI: " + str(group1medianpsi))
+            print("Group 2 median PSI: " + str(group2medianpsi))
+            
+            f.write("N\t"   #isPval>0.05
+                + str(int(rnames[ritor][5:]) + 1) + "\t" #ref number to lookup in jb table (the line number not ASEvent #)
+                + str(jbline[1]) + "\t" #as_event_type
+                + str(jbline[2]) + "\t" #gene_name
+                + "ANYTHING ELSE FROM ORIG FILE?"  + "\t"
+                + "\t" + "\n")
 
             ritor = ritor + 1
 
