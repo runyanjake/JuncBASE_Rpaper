@@ -26,6 +26,7 @@ from rpy2.robjects import BoolVector #reading R matrix (setting columns to read 
 DEF_THRESH = 10
 DEF_DPSI_THRESH = 5.0 
 DEF_FDR = 0.05
+DEF_OUT_PREC = 5
 #debug statement toggle
 DEBUG_STMTS = []
 
@@ -132,6 +133,12 @@ def main():
                         plugged into DBGLM1. Default=%d""" 
                                 % DEF_FDR,
                         default=DEF_FDR)
+    optionParser.add_option("--precision",
+                        dest="outtblprecision",
+                        type="int",
+                        help="""Precision for values in the output 
+                        table. Default=%d""" % DEF_OUT_PREC,
+                        default=DEF_OUT_PREC)
     optionParser.add_option("--debug",
                         action="store_true", 
                         dest="debug", 
@@ -373,7 +380,7 @@ def main():
 
         #Create the file that is the main output for the program.
         log('Generating main output file...')
-        makeoutputfile(options.useallgroups, now, groups_pylist, contrast, resultsG1G2, options.jb_table)
+        makeoutputfile(options.useallgroups, now, groups_pylist, contrast, resultsG1G2, options.jb_table, options.outtblprecision)
         log('Done.')
 
 #######################################################################
@@ -559,7 +566,7 @@ def parseJBTable(filepath, yvalues, mvalues, thresh, dthresh, numSamples, numLin
         log("Number of lines failing delta_thresh test: " + str(numfaildthresh))
         log("Number of lines failing both tests: " + str(numfailboth))
 
-def makeoutputfile(uallg, now, groups_pylist, contrast, resultsG1G2, jb_table):
+def makeoutputfile(uallg, now, groups_pylist, contrast, resultsG1G2, jb_table, desiredprecision):
     filename = "doubleExpSeqOut_"
     if uallg:
         filename = filename + "UAG_"
@@ -693,7 +700,6 @@ def makeoutputfile(uallg, now, groups_pylist, contrast, resultsG1G2, jb_table):
             f.write("Y\t")   #isadjPval>0.05
         else:
             f.write("N\t")   #isadjPval>0.05
-        desiredprecision = 5
         f.write(str(int(rreflines[ritor][5:]) + 1) + "\t" #ref number to lookup in jb table (the line number not ASEvent #)
             + str(jbline[1]) + "\t" #as_event_type
             + str(jbline[2]) + "\t" #gene_name
