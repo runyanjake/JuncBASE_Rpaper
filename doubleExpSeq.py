@@ -169,7 +169,7 @@ def main():
                         contrasting. First run this script with 
                         '--useallgroups' to instead use all groups' 
                         counts (will provide more data points at risk 
-                        of modifying distribution). Default=FALSE NOTE: To be implemented fully.""")
+                        of modifying distribution). Default=FALSE""")
     optionParser.add_option("--store_MAplot",
                         action="store_true", 
                         dest="store_MAplot", 
@@ -340,9 +340,9 @@ def main():
         # resultsG1G2 = DoubleExpSeq.DBGLM1(y,m,groups,shrinkMethod,contrast,fdrLevel,useAllGroups)
         if useAllGroups: 
             #TODO: MODIFY WITH USEALLGROUPS=TRUE
-            resultsG1G2 = DoubleExpSeq.DBGLM1(y,m,groups,use_all_groups=True)
+            resultsG1G2 = DoubleExpSeq.DBGLM1(y,m,groups,shrink_method=shrinkMethod,contrast=rc(2,3),fdr_level=fdrLevel,use_all_groups=True)
         if not useAllGroups: 
-            resultsG1G2 = DoubleExpSeq.DBGLM1(y,m,groups)
+            resultsG1G2 = DoubleExpSeq.DBGLM1(y,m,groups,shrink_method=shrinkMethod,contrast=rc(2,3),fdr_level=fdrLevel,use_all_groups=False)
         WEBsig = resultsG1G2.rx2("Sig") #grab just the $Sig matrix
         rrownames = robjects.r['rownames']
         rownames = rrownames(WEBsig) #grab the rownames
@@ -372,7 +372,7 @@ def main():
 
         #Create the file that is the main output for the program.
         log('Generating main output file...')
-        makeoutputfile(options.useallgroups, now, groups_pylist, contrast, resultsG1G2, options.jb_table, rnames)
+        makeoutputfile(options.useallgroups, now, groups_pylist, contrast, resultsG1G2, options.jb_table)
         log('Done.')
 
 #######################################################################
@@ -558,7 +558,7 @@ def parseJBTable(filepath, yvalues, mvalues, thresh, dthresh, numSamples, numLin
         log("Number of lines failing delta_thresh test: " + str(numfaildthresh))
         log("Number of lines failing both tests: " + str(numfailboth))
 
-def makeoutputfile(uallg, now, groups_pylist, contrast, resultsG1G2, jb_table, rnames):
+def makeoutputfile(uallg, now, groups_pylist, contrast, resultsG1G2, jb_table):
     filename = "doubleExpSeqOut_"
     if uallg:
         filename = filename + "UAG_"
@@ -583,7 +583,7 @@ def makeoutputfile(uallg, now, groups_pylist, contrast, resultsG1G2, jb_table, r
         itor = itor + 1
 
     #itorate through dbglm1 output as the main control:
-    routput = resultsG1G2.rx2("All") #All holds data, #sig held the column names for earlier use.
+    routput = resultsG1G2.rx2("Sig") #All holds data, #sig holds significant ASEvents.
     routput_rows = numpy.asarray(routput) #breaks matrix into list of 9tuples
     #open jb table
     jbtablefile = open(jb_table, 'rt')
@@ -594,6 +594,11 @@ def makeoutputfile(uallg, now, groups_pylist, contrast, resultsG1G2, jb_table, r
     # isPval>0.05  line#inInputTable ANYTHING ELSE FROM ORIG FILE?  median_psi_group1  median_psi_group2  delta_psi\traw_pval  corrected_pval
     f.write("# is_adj_pval>0.05\tline#inInputTable\tas_event_type\tgene_name\tANYTHING ELSE FROM ORIG FILE?\tmedian_psi_group1\tmedian_psi_group2\tdelta_psi\traw_pval\tcorrected_pval\n")
     
+    #build a list of the jb table references that are in the r output
+    rreflines = []
+    rrownames = robjects.r['rownames']
+    rreflines = rrownames(routput) #grab the rownames
+
     ritor = 0
     jbitor = 0
     for row in routput_rows: #ritor: 1-n jbitor: 0-(n-1)
@@ -601,9 +606,16 @@ def makeoutputfile(uallg, now, groups_pylist, contrast, resultsG1G2, jb_table, r
         group2psilist = []
         group1contrib = 0
         group2contrib = 0
-        while not jbitor == int(rnames[ritor][5:]):
+
+        while not jbitor == int(rreflines[ritor][5:]):
             jbline = next(jbtable)
             jbitor = jbitor + 1
+
+
+        print("Looking at R entry " + str(ritor+1) + " which is actually R line " + str(ritor+3) + ", which corresponds to JB line " + str(jbitor+1))
+        print("R line: " + str(row))
+        print("JB line: " + str(jbline) + "\n\n")
+
 
         #compute median psi
         for itor in range(11, len(jbline)):
@@ -677,7 +689,7 @@ def makeoutputfile(uallg, now, groups_pylist, contrast, resultsG1G2, jb_table, r
             f.write("Y\t")   #isadjPval>0.05
         else:
             f.write("N\t")   #isadjPval>0.05
-        f.write(str(int(rnames[ritor][5:]) + 1) + "\t" #ref number to lookup in jb table (the line number not ASEvent #)
+        f.write(str(int(rreflines[ritor][5:]) + 1) + "\t" #ref number to lookup in jb table (the line number not ASEvent #)
             + str(jbline[1]) + "\t" #as_event_type
             + str(jbline[2]) + "\t" #gene_name
             + "ANYTHING ELSE FROM ORIG FILE?"  + "\t" 
