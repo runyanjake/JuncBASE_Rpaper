@@ -328,7 +328,8 @@ def main():
         #set other params
         groups = rc(*groups_pylist)
         shrinkMethod = rc(options.shrinkmethod)
-        contrast = rc(*options.contrast) #the INDICES we compare
+        contrast = rc(int(options.contrast[0]), int(options.contrast[1])) #the INDICES we compare
+        
         fdrLevel = options.fdrlevel
         useAllGroups = options.useallgroups
 
@@ -340,9 +341,9 @@ def main():
         # resultsG1G2 = DoubleExpSeq.DBGLM1(y,m,groups,shrinkMethod,contrast,fdrLevel,useAllGroups)
         if useAllGroups: 
             #TODO: MODIFY WITH USEALLGROUPS=TRUE
-            resultsG1G2 = DoubleExpSeq.DBGLM1(y,m,groups,shrink_method=shrinkMethod,contrast=rc(2,3),fdr_level=fdrLevel,use_all_groups=True)
+            resultsG1G2 = DoubleExpSeq.DBGLM1(y,m,groups,shrink_method=shrinkMethod,contrast=contrast,fdr_level=fdrLevel,use_all_groups=True)
         if not useAllGroups: 
-            resultsG1G2 = DoubleExpSeq.DBGLM1(y,m,groups,shrink_method=shrinkMethod,contrast=rc(2,3),fdr_level=fdrLevel,use_all_groups=False)
+            resultsG1G2 = DoubleExpSeq.DBGLM1(y,m,groups,shrink_method=shrinkMethod,contrast=contrast,fdr_level=fdrLevel,use_all_groups=False)
         WEBsig = resultsG1G2.rx2("Sig") #grab just the $Sig matrix
         rrownames = robjects.r['rownames']
         rownames = rrownames(WEBsig) #grab the rownames
@@ -575,12 +576,17 @@ def makeoutputfile(uallg, now, groups_pylist, contrast, resultsG1G2, jb_table):
     group1consider = [] #list of what parts of the line to take from jbase line (11 offset)
     group2consider = [] #list of what parts of the line to take from jbase line (11 offset)
     itor = 0
+    log("Trying to sort labels into 2 groups we care about.")
     for label in label_groups:
-        if label == contrast[0]:
+        log("Looking at label " + str(label) + ", is it in group " + str(contrast[0]) + " or group " + str(contrast[1]))
+        if str(label) == str(contrast[0]):
             group1consider.append(itor)
-        elif label == contrast[1]:
+        elif str(label) == str(contrast[1]):
             group2consider.append(itor)
         itor = itor + 1
+
+    log("Group1consider: " + str(group1consider))
+    log("Group2consider: " + str(group2consider))
 
     #itorate through dbglm1 output as the main control:
     routput = resultsG1G2.rx2("Sig") #All holds data, #sig holds significant ASEvents.
@@ -592,7 +598,7 @@ def makeoutputfile(uallg, now, groups_pylist, contrast, resultsG1G2, jb_table):
 
     #write the header
     # isPval>0.05  line#inInputTable ANYTHING ELSE FROM ORIG FILE?  median_psi_group1  median_psi_group2  delta_psi\traw_pval  corrected_pval
-    f.write("# is_adj_pval>0.05\tline#inInputTable\tas_event_type\tgene_name\tANYTHING ELSE FROM ORIG FILE?\tmedian_psi_group" + contrast[0] + "\tmedian_psi_group" + contrast[1] + "\tdelta_psi\traw_pval\tcorrected_pval\n")
+    f.write("# is_adj_pval>0.05\tline#inInputTable\tas_event_type\tgene_name\tANYTHING ELSE FROM ORIG FILE?\tmedian_psi_group" + str(contrast[0]) + "\tmedian_psi_group" + str(contrast[1]) + "\tdelta_psi\traw_pval\tcorrected_pval\tModel.Disp\tNull.Disp\n")
     
     #build a list of the jb table references that are in the r output
     rreflines = []
@@ -687,16 +693,19 @@ def makeoutputfile(uallg, now, groups_pylist, contrast, resultsG1G2, jb_table):
             f.write("Y\t")   #isadjPval>0.05
         else:
             f.write("N\t")   #isadjPval>0.05
+        desiredprecision = 5
         f.write(str(int(rreflines[ritor][5:]) + 1) + "\t" #ref number to lookup in jb table (the line number not ASEvent #)
             + str(jbline[1]) + "\t" #as_event_type
             + str(jbline[2]) + "\t" #gene_name
             + "ANYTHING ELSE FROM ORIG FILE?"  + "\t" 
-            + str(round(group1medianpsi, 4)) + "\t" #Group 1 median PSI
-            + str(round(group2medianpsi, 4)) + "\t" #GRoup 2 median PSI
-            + str(round(abs(group1medianpsi - group2medianpsi), 4)) + "\t" #Delta PSI
-            + str(row[2]) + "\t" #pVal (from R)
-            + str(row[3]) + "\t" #adj.pVal (from R)
-            + "\t" + "\n")
+            + str(round(group1medianpsi, desiredprecision)) + "\t" #Group 1 median PSI
+            + str(round(group2medianpsi, desiredprecision)) + "\t" #GRoup 2 median PSI
+            + str(round(abs(group1medianpsi - group2medianpsi), desiredprecision)) + "\t" #Delta PSI
+            + str(round(abs(float(row[2])), desiredprecision)) + "\t" #pVal (from R)
+            + str(round(abs(float(row[3])), desiredprecision)) + "\t" #adj.pVal (from R)
+            + str(round(abs(float(row[7])), desiredprecision)) + "\t" #Model.Disp
+            + str(round(abs(float(row[8])), desiredprecision)) + "\t" #Null.Disp
+            + "\n")
 
         ritor = ritor + 1
 

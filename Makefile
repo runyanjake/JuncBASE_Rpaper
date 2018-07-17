@@ -15,7 +15,7 @@ faildeltathresh:
 
 runfullfile:
 	@echo Running doubleExpSeq with Python3.x using the provided file in its entirety.
-	python3 doubleExpSeq.py --thresh 10 --delta_thresh 5.0 --jb_table ./ExampleCountTables/MM1s_juncBASE_171117_AS_exclusion_inclusion_counts.txt --col_labels "G1_1,G1_2,G1_3,G2_1,G2_2,G2_3,G3_1,G3_2,G3_3,G4_1,G4_2,G4_3" --contrast 2,4 --store_dbglm1_output
+	python3 doubleExpSeq.py --thresh 10 --delta_thresh 5.0 --jb_table ./ExampleCountTables/MM1s_juncBASE_171117_AS_exclusion_inclusion_counts.txt --col_labels "G1_1,G1_2,G1_3,G2_1,G2_2,G2_3,G3_1,G3_2,G3_3,G4_1,G4_2,G4_3" --contrast 1,2 --store_dbglm1_output
 
 run10kfile:
 	@echo Running doubleExpSeq with Python3.x using 10k of the lines from the provided file.
