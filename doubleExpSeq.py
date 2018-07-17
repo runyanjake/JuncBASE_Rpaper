@@ -611,11 +611,9 @@ def makeoutputfile(uallg, now, groups_pylist, contrast, resultsG1G2, jb_table):
             jbline = next(jbtable)
             jbitor = jbitor + 1
 
-
-        print("Looking at R entry " + str(ritor+1) + " which is actually R line " + str(ritor+3) + ", which corresponds to JB line " + str(jbitor+1))
-        print("R line: " + str(row))
-        print("JB line: " + str(jbline) + "\n\n")
-
+        # print("Looking at R entry " + str(ritor+1) + " which is actually R line " + str(ritor+3) + ", which corresponds to JB line " + str(jbitor+1))
+        # print("R line: " + str(row))
+        # print("JB line: " + str(jbline) + "\n\n")
 
         #compute median psi
         for itor in range(11, len(jbline)):
@@ -631,8 +629,8 @@ def makeoutputfile(uallg, now, groups_pylist, contrast, resultsG1G2, jb_table):
                 if not inclexcl[0] == 0: #avoid possible division by 0 (any NaN -> 0.0)
                     psi = float(inclexcl[0]) / (float(inclexcl[0]) + float(inclexcl[1]))
                 group2psilist.append(psi)
-        log("Group 1 PSIs: " + str(group1psilist))
-        log("Group 2 PSIs: " + str(group2psilist))
+        log("Group A PSIs: " + str(group1psilist))
+        log("Group B PSIs: " + str(group2psilist))
         while len(group1psilist) > 2: 
             valuelowest = group1psilist[0]
             indexlowest = 0
