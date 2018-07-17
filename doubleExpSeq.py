@@ -592,7 +592,7 @@ def makeoutputfile(uallg, now, groups_pylist, contrast, resultsG1G2, jb_table):
 
     #write the header
     # isPval>0.05  line#inInputTable ANYTHING ELSE FROM ORIG FILE?  median_psi_group1  median_psi_group2  delta_psi\traw_pval  corrected_pval
-    f.write("# is_adj_pval>0.05\tline#inInputTable\tas_event_type\tgene_name\tANYTHING ELSE FROM ORIG FILE?\tmedian_psi_group1\tmedian_psi_group2\tdelta_psi\traw_pval\tcorrected_pval\n")
+    f.write("# is_adj_pval>0.05\tline#inInputTable\tas_event_type\tgene_name\tANYTHING ELSE FROM ORIG FILE?\tmedian_psi_group" + contrast[0] + "\tmedian_psi_group" + contrast[1] + "\tdelta_psi\traw_pval\tcorrected_pval\n")
     
     #build a list of the jb table references that are in the r output
     rreflines = []
